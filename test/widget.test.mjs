@@ -233,3 +233,25 @@ test('the widget language arrives through the loader argument', async () => {
   assert.ok(node !== null, 'the widget renders once the summary arrives')
   assert.match(node.props.title, /Стоимость токенов/, 'the config wins over the browser language')
 })
+
+test('a chat the Host knows nothing about still gets a line, and says why', async () => {
+  const { render } = loadBundle({ fetchImpl: respondWith({ ok: false, reason: 'unknown-session' }) })
+  const first = render({ sessionId: 'past', useProjection: () => usage })
+  await new Promise((resolve) => setImmediate(resolve))
+  const node = render({ sessionId: 'past', useProjection: () => usage }) ?? first
+
+  assert.ok(node !== null, 'rendering nothing is what made the readout disappear')
+  assert.equal(node.props.className, 'dsh-chat-cost dsh-chat-cost--muted')
+  assert.match(node.props.title, /neither a live session nor a log record/)
+})
+
+test('numbers taken from the log are labelled as such', async () => {
+  const recorded = { ...summary, recorded: true, sessions: [{ sessionId: 'past', model: 'deepseek-flash', usd: 1.5, live: false }], totals: { usd: 1.5, chatUsd: 1.5, subagentUsd: null, subagentCount: 0, unpricedSessions: [] } }
+  const { render } = loadBundle({ fetchImpl: respondWith(recorded) })
+  const first = render({ sessionId: 'past', useProjection: () => usage })
+  await new Promise((resolve) => setImmediate(resolve))
+  const node = render({ sessionId: 'past', useProjection: () => usage }) ?? first
+
+  assert.match(node.children.join(''), /≈ \$1\.500/, 'the logged total is shown')
+  assert.match(node.props.title, /what the cost log recorded/, 'and the tooltip says where it comes from')
+})

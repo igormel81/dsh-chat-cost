@@ -38,6 +38,7 @@ Known limits, stated rather than hidden: only live sessions expose provider usag
 - **Interval pricing.** The JSONL log is the base: every flush prices only the tokens that arrived since the previous record, at the tariff in effect at that moment, so a chat that crosses a DeepSeek peak boundary keeps the price it was really billed at instead of being re-priced retroactively.
 - **Bounded, cached reads.** A summary reads only the tail of the log (`ledgerTailBytes`, 2 MiB by default) and reuses the cached read while the file's size and mtime are unchanged; when the tail starts mid-file the plugin reports `truncated` and `skippedBytes` instead of pretending to know the whole history.
 - **Nothing is quietly unaccounted.** Spend that belongs to no plan unit is named in the tooltip (`$1.230 is not attributed to any plan unit`) rather than folded into a total.
+- **Every chat, open or not.** A chat that is not currently open has no live session, so the readout prices it from the cost log and labels the number as recorded; a chat the log has never seen shows `—` with the reason instead of disappearing. Opening it makes it live, prices it exactly, and writes the missing record.
 - **Three languages.** English, Chinese and Russian, chosen from the plugin config, then the harness locale, then the browser language.
 
 ## Install
@@ -67,13 +68,13 @@ The summary is built ledger-first: recorded deltas are summed from the log file,
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.3","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.4","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## Releasing
 
 ```sh
-npm test            # 126 tests; the schema checks need a DSH profile for the validator
+npm test            # 128 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public
@@ -134,6 +135,7 @@ The recommendation names the cost drivers, ranks what switching would save per u
 
 - Reasoning tokens are billed as output by the providers and are counted as output here.
 - Long-context tier prices published for some Gemini and Grok models are not applied yet; the base tier is used.
+- A chat that the log has never seen and that is not open shows `—`: the plugin prices what it can prove (the live session, or the log) and says so rather than estimating from a projection it cannot read.
 - The live readout counts only the tail of the log (`ledgerTailBytes`, 2 MiB by default); older spend stays in the file and the summary reports the truncation.
 - The write queue serializes the plugin's own writes. A human editing `plan.json` at the moment the model writes it can still lose that edit; the file is small and meant to be reviewed, not co-edited.
 

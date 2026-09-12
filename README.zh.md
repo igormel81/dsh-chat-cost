@@ -38,6 +38,7 @@
 - **按区间计价。** 以 JSONL 日志为准：每次落盘只对上次记录之后新增的 token 按当时生效的价格计费。跨过 DeepSeek 峰时边界的对话保留实际计费价格，不会被追溯重算。
 - **有界读取与缓存。** 汇总只读取日志尾部（`ledgerTailBytes`，默认 2 MiB），并在文件大小与修改时间未变时复用缓存；若尾部从文件中间开始，插件会报告 `truncated` 与 `skippedBytes`，而不是假装掌握全部历史。
 - **不会悄悄漏账。** 未归入任何计划单元的费用会在提示中点名（`$1.230 未归入任何计划单元`），而不是混进合计。
+- **每个对话都有读数，无论是否打开。** 未打开的对话没有活动会话，因此读数按费用日志计价并标注为“日志记录”；日志中从未出现过的对话显示 `—` 并说明原因，而不是整行消失。打开它后会成为活动会话，被精确计价，并补写缺失的记录。
 - **三种语言。** 英语、中文、俄语，依次按插件配置、harness 语言设置、浏览器语言选择。
 
 ## 安装
@@ -67,13 +68,13 @@ dsh plugin --profile web add dsh-chat-cost
 ## 费用日志格式
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.3","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.4","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## 发布流程
 
 ```sh
-npm test            # 126 项测试；schema 检查需要 DSH profile 提供校验器
+npm test            # 128 项测试；schema 检查需要 DSH profile 提供校验器
 npm run prices      # 发布前刷新内置价格目录
 npm version minor
 npm publish --access public
@@ -134,6 +135,7 @@ cost_plan   {action: budget, budgetUsd: 25}                -> 组件随即显示
 
 - 推理 token 由供应商按输出计费，此处同样计入输出。
 - 部分 Gemini 与 Grok 模型公布的长上下文档位价格尚未应用，当前使用基础档价格。
+- 日志中从未出现且未打开的对话显示 `—`：插件只计入可证实的部分（活动会话或日志），并明确说明，而不是根据它读不到的投影去估算。
 - 实时读数只统计日志尾部（`ledgerTailBytes`，默认 2 MiB）；更早的费用仍留在文件中，汇总会说明截断情况。
 - 队列只串行化插件自身的写入。人在模型写入时手工编辑 `plan.json` 仍可能丢失该次编辑；该文件很小，用于查看而非并行编辑。
 

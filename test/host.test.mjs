@@ -276,3 +276,78 @@ test('a session carrying the real projection state is priced, not reported as fr
   assert.equal(fromProjection.self.tokens.cacheRead, 0, 'totals wins over the last step')
   assert.equal(fromProjection.self.tokens.uncachedInput, 1000000)
 })
+
+test('a chat that is not open is priced from the log instead of reported as nothing', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-recorded-'))
+  const past = 'session-past'
+  await appendCostLog(project, [
+    costRecord({
+      plugin: 'dsh-chat-cost@0.5.4',
+      sessionId: past,
+      rootSessionId: past,
+      depth: 0,
+      kind: 'chat',
+      provider: 'deepseek-official',
+      model: 'deepseek-flash',
+      pricingSource: 'official',
+      tier: 'off-peak',
+      usage: { uncachedInputTokens: 2000000, outputTokens: 100000, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      cumulativeUsd: 0.36,
+      deltaUsd: 0.36
+    })
+  ])
+
+  // The store holds nothing live; only the query engine knows where it lived.
+  const ctx = context({
+    sessions: [],
+    query: {
+      traceSession: async () => ({
+        target: { header: { id: past, cwd: project } },
+        root: { header: { id: past, cwd: project } },
+        descendants: [],
+        complete: true
+      })
+    }
+  })
+
+  const before = (await readFile(join(project, '.dsh-cost', 'cost.jsonl'), 'utf8')).trim().split('\n').length
+  const summary = await __buildSummary(ctx, settings, __createState(), past)
+
+  assert.equal(summary.ok, true)
+  assert.equal(summary.recorded, true, 'the answer says the numbers come from the log')
+  assert.equal(summary.workspace, project)
+  assert.equal(summary.sessions[0].live, false)
+  assert.equal(summary.sessions[0].model, 'deepseek-flash')
+  assert.equal(summary.totals.usd, 0.36)
+  assert.equal(summary.totals.sessions, 1)
+  assert.equal(summary.self.totalTokens, 2100000, 'the logged tokens are shown')
+
+  // Nothing new was spent, so nothing was appended for it.
+  const after = (await readFile(join(project, '.dsh-cost', 'cost.jsonl'), 'utf8')).trim().split('\n').length
+  assert.equal(after, before, 'a session that is not live has no delta to record')
+})
+
+test('a session the log never saw is reported without a price, and an unresolvable one is unknown', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-recorded-empty-'))
+  const ctx = context({
+    sessions: [],
+    query: {
+      traceSession: async () => ({
+        target: { header: { id: 'never-logged', cwd: project } },
+        root: { header: { id: 'never-logged', cwd: project } },
+        descendants: [],
+        complete: true
+      })
+    }
+  })
+
+  const summary = await __buildSummary(ctx, settings, __createState(), 'never-logged')
+  assert.equal(summary.ok, true)
+  assert.equal(summary.recorded, true)
+  assert.equal(summary.totals.usd, null, 'no record, no invented price')
+  assert.deepEqual(summary.totals.unpricedSessions, ['never-logged'])
+
+  // Neither live nor traceable: the answer stays what it was.
+  const blind = context({ sessions: [], query: { traceSession: async () => { throw new Error('not found') } } })
+  assert.deepEqual(await __buildSummary(blind, settings, __createState(), 'gone'), { ok: false, reason: 'unknown-session' })
+})
