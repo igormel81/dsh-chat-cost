@@ -60,6 +60,18 @@ Refresh the snapshot with `npm run prices` (the seven curated providers) or `npm
 {"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"totalTokens":1200,"cumulativeUsd":0.006,"deltaUsd":0.002}
 ```
 
+## Releasing
+
+```sh
+npm test            # 83 tests; the schema checks need a DSH profile for the validator
+npm run prices      # refresh the bundled catalog before a release
+npm version minor
+npm publish --access public
+for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
+```
+
+The package is a DSH bundle: `dsh plugin --profile web add dsh-chat-cost` installs it and the profile reconciles the patch layer by itself, so a release changes nothing for a user who already has it except the version. Bump `PLUGIN_VERSION` in `lib/index.js` together with the package version — it stamps every cost-log record, which is how a ledger entry can be traced back to the release that wrote it. After editing any README, re-record the hashes in `README.i18n.yaml`: a test fails until the three languages agree again.
+
 ## Tests
 
 ```sh

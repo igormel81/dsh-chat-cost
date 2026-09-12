@@ -60,6 +60,18 @@ dsh plugin --profile web add dsh-chat-cost
 {"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"totalTokens":1200,"cumulativeUsd":0.006,"deltaUsd":0.002}
 ```
 
+## Выпуск версии
+
+```sh
+npm test            # 83 теста; проверки схем требуют профиля DSH с валидатором
+npm run prices      # обновить встроенный каталог цен перед выпуском
+npm version minor
+npm publish --access public
+for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
+```
+
+Пакет является бандлом DSH: `dsh plugin --profile web add dsh-chat-cost` его устанавливает, а слой патча профиль подхватывает сам — для тех, у кого плагин уже стоит, выпуск меняет только версию. Поднимай `PLUGIN_VERSION` в `lib/index.js` вместе с версией пакета: он проставляется в каждой записи cost-лога, и по нему видно, каким релизом запись сделана. После правки любого README перезапиши хеши в `README.i18n.yaml` — до этого тест падает, пока три языка снова не сойдутся.
+
 ## Тесты
 
 ```sh
