@@ -80,6 +80,19 @@ jobs:
         if: inputs.dry_run
         run: npm pack --dry-run
 
+      # npm matches its trusted-publisher configuration against exactly these
+      # strings. When publishing is rejected, this is what to compare with the
+      # form on npmjs.com, character by character.
+      - name: The identity npm matches against your trusted publisher
+        run: |
+          echo "repository:    $GITHUB_REPOSITORY"
+          echo "workflow ref:  $GITHUB_WORKFLOW_REF"
+          echo "workflow file: $GITHUB_WORKFLOW"
+          echo "ref:           $GITHUB_REF"
+          echo "event:         $GITHUB_EVENT_NAME"
+          echo "environment:   this job declares none"
+          echo "npm:           $(npm --version), node $(node --version)"
+
       - name: Publish
         if: inputs.dry_run == false && inputs.mode == 'direct'
         run: npm publish --access public --provenance --tag "${{ inputs.dist_tag }}"
