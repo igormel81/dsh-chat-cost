@@ -2,18 +2,18 @@
  * The tool schemas as the harness registry will judge them.
  *
  * The registry enforces a JSON Schema subset and validates every result against
- * the declared output schema. This test runs our definitions through the
- * harness's own validators when the package is resolvable (it is, inside a DSH
- * profile) and otherwise reports the checks as skipped rather than pretending
- * they ran.
+ * the declared output schema. Those checks run only where the harness package is
+ * resolvable — inside a DSH profile — and are reported as skipped elsewhere
+ * rather than silently passing:
+ *
+ *   dsh plugin --profile web add link:$PWD   # then run the suite from that profile
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
-import { mkdtemp } from 'node:fs/promises'
+import { readFile, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { buildTools } from '../lib/tools.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -25,6 +25,8 @@ try {
 } catch {
   sdk = null
 }
+
+const NO_SDK = '@deepseek-ai/dsh-tools is not resolvable here; install the plugin into a DSH profile to validate schemas against the harness'
 
 const project = await mkdtemp(join(tmpdir(), 'dsh-cost-schemas-'))
 const tools = buildTools({
@@ -43,40 +45,33 @@ const CALLS = {
   cost_mark: { label: 'u', title: 'Schema check' }
 }
 
-test('the harness validator is reachable from a DSH profile', () => {
-  assert.ok(sdk !== null, 'run this suite inside a profile (`dsh plugin --profile web add` installs the SDK)')
-  assert.equal(typeof sdk.assertSupportedJsonSchema, 'function')
-  assert.equal(typeof sdk.validateJsonSchemaValue, 'function')
-})
-
-test('every parameter and output schema is inside the supported subset', () => {
-  if (sdk === null) return
-  for (const tool of tools) {
-    assert.doesNotThrow(() => sdk.assertSupportedJsonSchema(tool.parameters), `${tool.name} parameters`)
-    assert.doesNotThrow(() => sdk.assertSupportedJsonSchema(tool.output.schema), `${tool.name} output schema`)
-  }
-})
-
 test('the model-facing schema carries only name, description and parameters', () => {
   for (const tool of tools) {
-    for (const key of Object.keys(tool)) {
-      assert.ok(['name', 'description', 'parameters', 'output', 'execute', 'timeoutMs', 'isConcurrencySafe', 'finalizeContent'].includes(key), `unexpected definition key ${key}`)
-    }
+    const allowed = ['name', 'description', 'parameters', 'output', 'execute', 'timeoutMs', 'isConcurrencySafe', 'finalizeContent']
+    for (const key of Object.keys(tool)) assert.ok(allowed.includes(key), `unexpected definition key ${key}`)
     assert.equal(typeof tool.name, 'string')
     assert.equal(typeof tool.description, 'string')
     assert.equal(tool.parameters.type, 'object')
   }
 })
 
-test('every tool results in lossless JSON that matches its declared schema', async () => {
+test('every parameter and output schema is inside the supported subset', (t) => {
+  if (sdk === null) return t.skip(NO_SDK)
+  for (const tool of tools) {
+    assert.doesNotThrow(() => sdk.assertSupportedJsonSchema(tool.parameters), `${tool.name} parameters`)
+    assert.doesNotThrow(() => sdk.assertSupportedJsonSchema(tool.output.schema), `${tool.name} output schema`)
+  }
+})
+
+test('every tool results in lossless JSON, and matches its schema where the validator is available', async (t) => {
   const exec = { agent: { sessionId: 'schema-session' } }
   for (const tool of tools) {
     const args = CALLS[tool.name]
     assert.ok(args !== undefined, `${tool.name} has a representative call`)
     const value = await tool.execute(args, exec)
 
-    // Lossless JSON: a present-but-undefined field would be dropped by the
-    // registry's snapshot and rejected before the model ever sees it.
+    // Lossless JSON is checked everywhere: a present-but-undefined field would be
+    // dropped by the registry's snapshot and rejected before the model saw it.
     assert.deepEqual(JSON.parse(JSON.stringify(value)), value, `${tool.name} returns lossless JSON`)
     if (sdk !== null) {
       assert.deepEqual(sdk.validateJsonSchemaValue(tool.output.schema, value), [], `${tool.name} matches its output schema`)
@@ -87,9 +82,10 @@ test('every tool results in lossless JSON that matches its declared schema', asy
     assert.equal(rendered[0].type, 'text')
     assert.equal(typeof rendered[0].text, 'string')
   }
+  if (sdk === null) t.diagnostic(NO_SDK)
 })
 
-test('refusals are lossless JSON too', async () => {
+test('refusals are lossless JSON too', async (t) => {
   const exec = { agent: { sessionId: 'schema-session' } }
   const refusing = buildTools({ catalog, settings: { logDirectory: '.dsh-cost' }, resolveProject: () => ({ dir: null, sessionId: null, rootSessionId: null }) })
   for (const tool of refusing) {
@@ -99,4 +95,5 @@ test('refusals are lossless JSON too', async () => {
       assert.deepEqual(sdk.validateJsonSchemaValue(tool.output.schema, value), [], `${tool.name} refusal matches its schema`)
     }
   }
+  if (sdk === null) t.diagnostic(NO_SDK)
 })

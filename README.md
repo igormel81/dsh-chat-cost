@@ -78,7 +78,15 @@ The package is a DSH bundle: `dsh plugin --profile web add dsh-chat-cost` instal
 npm test
 ```
 
-Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the log records and file writes against real files in a temporary directory, and the shipped client bundle loaded with a stubbed module loader — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
+Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the log records and file writes against real files in a temporary directory, the plugin activation path (`apply` against a stub host: route, six tools, turn-driven flush, disposal), overlapping flushes, and the shipped client bundle rendered with a React-like hook store — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
+
+Two suites go further than a plain checkout can: the schema checks run the tool schemas through the harness's own validator, and the packaged artifact is tested after `npm pack`. Both need `@deepseek-ai/dsh-tools`, which resolves only inside a DSH profile, so outside one they are reported as skipped rather than silently passing. For the full run:
+
+```sh
+dsh plugin --profile web add link:$PWD
+npm pack && tar xzf dsh-chat-cost-*.tgz -C ~/.dsh/profiles/web/pack-check \
+  && (cd ~/.dsh/profiles/web/pack-check/package && npm test)
+```
 
 ## Budget planning
 
