@@ -108,12 +108,14 @@ jobs:
         run: npm stage publish --tag "${{ inputs.dist_tag }}"
 
       # A bad release should not stay installable by accident. Deprecation is a
-      # packument write rather than a publish, so it may need a token even where
-      # trusted publishing is configured; a failure here is reported, not fatal
-      # to the release that already went out.
-      - name: Deprecate an earlier version
+      # packument write rather than a publish, and trusted publishing authorizes
+      # only publish and stage publish, so this needs a token: measured here, it
+      # answers 404 while `npm publish` over the same identity succeeds. The
+      # step warns instead of failing, because a release that already went out
+      # must not be reported as broken by a follow-up bookkeeping step.
+      - name: Deprecate an earlier version (needs a token, not OIDC)
         if: inputs.deprecate != ''
-        continue-on-error: true
         run: |
           npm deprecate "dsh-chat-cost@${{ inputs.deprecate }}" \
-            "fails to load at host boot; upgrade to 0.5.1 or later"
+            "fails to load at host boot; upgrade to 0.5.1 or later" \
+            || echo "::warning::deprecation was refused; run it with a token: npm deprecate dsh-chat-cost@${{ inputs.deprecate }} \"...\" --otp=<code>"
