@@ -13,7 +13,7 @@ import { dirname, join } from 'node:path'
 const source = await readFile(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'client.js'), 'utf8')
 
 /** Load the bundle the way a browser would, and hand back its plugin contract. */
-function loadBundle({ navigatorLanguage = 'en-US', fetchImpl = async () => { throw new Error('no host') }, localeService = undefined } = {}) {
+function loadBundle({ navigatorLanguage = 'en-US', fetchImpl = async () => { throw new Error('no host') }, localeService = undefined, pluginConfig = undefined } = {}) {
   let entry = null
   const requires = []
   const window = {
@@ -62,8 +62,7 @@ function loadBundle({ navigatorLanguage = 'en-US', fetchImpl = async () => { thr
   })
 
   const slot = { render: null, register: null }
-  const ctx = {
-    config: {},
+  const base = {
     get(name) {
       if (name === 'slots') {
         return {
@@ -78,7 +77,17 @@ function loadBundle({ navigatorLanguage = 'en-US', fetchImpl = async () => { thr
     effect: () => () => {}
   }
 
-  loaded.apply(ctx)
+  // The Client half runs the same Cordis as the Host: a property the plugin did
+  // not inject throws. Reading config from here is what broke the shell in
+  // 0.5.1 while the Host half was already fixed, so the stub refuses it too.
+  const ctx = new Proxy(base, {
+    get(target, property) {
+      if (property === 'config') throw new Error('cannot get property "config" without inject')
+      return Reflect.get(target, property)
+    }
+  })
+
+  loaded.apply(ctx, pluginConfig)
 
   /**
    * Render with fresh hooks, the way React would: the slot hands back an ELEMENT
@@ -213,4 +222,14 @@ test('a Host that does not answer degrades to tokens and says so', async () => {
   assert.equal(node.props.className, 'dsh-chat-cost dsh-chat-cost--muted')
   assert.match(node.props.title, /did not answer/)
   assert.match(node.props.title, /tokens — input 1\.0M/)
+})
+
+test('the widget language arrives through the loader argument', async () => {
+  // The browser would prefer English here; the config the loader passes must win.
+  const { render } = loadBundle({ pluginConfig: { language: 'ru' }, navigatorLanguage: 'en-US', fetchImpl: respondWith(summary) })
+  const first = render({ sessionId: 'root', useProjection: () => usage })
+  await new Promise((resolve) => setImmediate(resolve))
+  const node = render({ sessionId: 'root', useProjection: () => usage }) ?? first
+  assert.ok(node !== null, 'the widget renders once the summary arrives')
+  assert.match(node.props.title, /Стоимость токенов/, 'the config wins over the browser language')
 })

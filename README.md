@@ -67,13 +67,13 @@ The summary is built ledger-first: recorded deltas are summed from the log file,
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.1","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.2","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## Releasing
 
 ```sh
-npm test            # 117 tests; the schema checks need a DSH profile for the validator
+npm test            # 120 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public
@@ -90,7 +90,7 @@ The package is a DSH bundle: `dsh plugin --profile web add dsh-chat-cost` instal
 npm test
 ```
 
-Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the log records and file writes against real files in a temporary directory, the plugin activation path (`apply` against a stub host: route, six tools, turn-driven flush, disposal), overlapping flushes, and the shipped client bundle rendered with a React-like hook store — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
+Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the context discipline of both halves (Cordis throws on any property a plugin did not inject, which took the host down once and the web shell once, so the source is checked mechanically), the log records and file writes against real files in a temporary directory, the plugin activation path (`apply` against a stub host: route, six tools, turn-driven flush, disposal), overlapping flushes, and the shipped client bundle rendered with a React-like hook store — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
 
 Three suites go further than a plain checkout can: the schema checks run the tool schemas through the harness's own validator, the boot suite loads the plugin on the real Cordis the harness uses (where reading config from the context instead of the loader argument throws), and the packaged artifact is tested after `npm pack`. All three need packages that resolve only inside a DSH profile, so outside one they are reported as skipped rather than silently passing. For the full run:
 
