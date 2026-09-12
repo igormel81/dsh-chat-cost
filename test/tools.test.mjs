@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import { appendCostLog, costRecord } from '../lib/log.js'
 import { buildTools } from '../lib/tools.js'
+import { createLocks } from '../lib/locks.js'
 
 const catalog = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'prices.json'), 'utf8'))
 
@@ -20,7 +21,12 @@ const exec = { agent: { sessionId: 'root-1' } }
 
 async function harness() {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-tools-'))
-  const tools = buildTools({ catalog, settings, resolveProject: () => ({ dir: project, sessionId: 'root-1', rootSessionId: 'root-1' }) })
+  const tools = buildTools({
+    catalog,
+    settings,
+    locks: createLocks(),
+    resolveProject: () => ({ dir: project, sessionId: 'root-1', rootSessionId: 'root-1' })
+  })
   const byName = new Map(tools.map((tool) => [tool.name, tool]))
   const call = (name, args) => byName.get(name).execute(args, exec)
   return { project, tools, call }
@@ -272,4 +278,83 @@ test('scenarios refuse without units and say what to do', async () => {
   assert.equal(result.ok, false)
   assert.equal(result.reason, 'no-units')
   assert.match(result.hint, /cost_plan/)
+})
+
+test('overlapping plan writes cannot lose one another', async () => {
+  const { project, call } = await harness()
+  const units = [{ label: 'u', scenario: 'lean', routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] }]
+
+  // A plan and its comparison exist before the burst, so every later writer has
+  // something to preserve.
+  await call('cost_plan', { action: 'write', goal: 'seed', units })
+  await call('cost_scenarios', { units })
+
+  // Two refreshes, a comparison and a budget change, all read-modify-write on
+  // the same two files and all started before any of them finishes.
+  await Promise.all([
+    call('cost_plan', { action: 'write', goal: 'first', budgetUsd: 5, units }),
+    call('cost_plan', { action: 'write', goal: 'second', budgetUsd: 5, units }),
+    call('cost_scenarios', { units }),
+    call('cost_plan', { action: 'budget', budgetUsd: 7 })
+  ])
+
+  const stored = JSON.parse(await readFile(join(project, '.dsh-cost', 'plan.json'), 'utf8'))
+  assert.ok(['first', 'second'].includes(stored.goal), `a whole write survived, got ${stored.goal}`)
+  assert.equal(Array.isArray(stored.units), true)
+  assert.equal(stored.units.length, 1)
+  // Whatever the order was, the routing comparison survived the refreshes
+  // because both mutate the document inside the same queue.
+  assert.equal(Array.isArray(stored.scenarios), true)
+  assert.ok(stored.scenarios.length >= 4, `scenarios survived, got ${stored.scenarios?.length}`)
+  assert.equal(typeof stored.recommendation?.savingsUsd, 'number')
+  // The budget document is a second read-modify-write file: its own write landed.
+  const budget = JSON.parse(await readFile(join(project, '.dsh-cost', 'budget.json'), 'utf8'))
+  assert.equal(budget.usd, 7)
+})
+
+test('the generated plan document follows the language the Host reports', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-tools-lang-'))
+  let reported = null
+  const tools = buildTools({
+    catalog,
+    settings: { logDirectory: '.dsh-cost' },
+    locks: createLocks(),
+    languageOf: () => reported,
+    resolveProject: () => ({ dir: project, sessionId: 's', rootSessionId: 's' })
+  })
+  const call = (name, args) => tools.find((tool) => tool.name === name).execute(args, { agent: { sessionId: 's' } })
+  const units = [{ label: 'u', scenario: 'lean', routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] }]
+
+  await call('cost_plan', { action: 'write', goal: 'g', units })
+  assert.match(await readFile(join(project, '.dsh-cost', 'plan.md'), 'utf8'), /^# Cost plan/m, 'English by default')
+
+  reported = 'ru'
+  await call('cost_plan', { action: 'write', goal: 'g', units })
+  assert.match(await readFile(join(project, '.dsh-cost', 'plan.md'), 'utf8'), /^# План расходов/m, 'and Russian once the widget says so')
+
+  reported = 'zh'
+  await call('cost_plan', { action: 'write', goal: 'g', units })
+  assert.match(await readFile(join(project, '.dsh-cost', 'plan.md'), 'utf8'), /^# 费用计划/m)
+})
+
+test('a refresh with different units drops the comparison it no longer describes', async () => {
+  const { project, call } = await harness()
+  const units = [{ label: 'u', scenario: 'lean', routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] }]
+  await call('cost_plan', { action: 'write', goal: 'g', units })
+  await call('cost_scenarios', { units })
+  assert.equal(Array.isArray(JSON.parse(await readFile(join(project, '.dsh-cost', 'plan.json'), 'utf8')).scenarios), true)
+
+  // Same inputs: the comparison stays, and the answer says so.
+  const kept = await call('cost_plan', { action: 'write', goal: 'g2', units })
+  assert.equal(kept.scenariosKept, true)
+  assert.equal(kept.note, undefined)
+  assert.equal(Array.isArray(JSON.parse(await readFile(join(project, '.dsh-cost', 'plan.json'), 'utf8')).scenarios), true)
+
+  // Different inputs: keeping it would be a lie, so it goes, loudly.
+  const dropped = await call('cost_plan', { action: 'write', goal: 'g3', units: [{ label: 'other', tokens: 1000, scenario: 'lean' }] })
+  assert.equal(dropped.scenariosKept, false)
+  assert.match(dropped.note, /different units/)
+  const after = JSON.parse(await readFile(join(project, '.dsh-cost', 'plan.json'), 'utf8'))
+  assert.equal(after.scenarios, undefined)
+  assert.equal(after.goal, 'g3')
 })

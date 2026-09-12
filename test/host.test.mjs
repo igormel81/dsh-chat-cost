@@ -8,7 +8,8 @@ import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { __buildSummary, __collectTree, __config, __modelOf, __rootOf } from '../lib/index.js'
+import { PLUGIN_VERSION, __buildSummary, __collectTree, __config, __createState, __defaultLedgerTailBytes, __modelOf, __rootOf } from '../lib/index.js'
+import { appendCostLog, appendMarks, costRecord, markRecord } from '../lib/log.js'
 
 function session({ id, cwd, parent = undefined, provider = 'deepseek-official', model = 'deepseek-flash', usage = null }) {
   return {
@@ -40,7 +41,7 @@ test('a live chat plus a live subagent are priced into one tree and logged', asy
   const child = session({ id: 'child', parent: 'root', provider: 'moonshot', model: 'kimi-k3', usage: { outputTokens: 1000 } })
   const ctx = context({ sessions: [root, child] })
 
-  const summary = await __buildSummary(ctx, settings, { flushed: new Map() }, 'root')
+  const summary = await __buildSummary(ctx, settings, __createState(), 'root')
 
   assert.equal(summary.ok, true)
   assert.equal(summary.rootSessionId, 'root')
@@ -68,7 +69,7 @@ test('a live chat plus a live subagent are priced into one tree and logged', asy
   assert.equal(childRecord.parentSessionId, 'root')
   assert.equal(childRecord.model, 'kimi-k3')
   assert.equal(childRecord.pricingSource, 'catalog')
-  assert.equal(childRecord.plugin, 'dsh-chat-cost@0.4.4')
+  assert.equal(childRecord.plugin, `dsh-chat-cost@${PLUGIN_VERSION}`, 'the record names the release that wrote it')
   assert.equal(await readFile(join(project, '.gitignore'), 'utf8'), '.dsh-cost/\n')
 })
 
@@ -76,7 +77,7 @@ test('an unchanged tree writes nothing, a changed session appends only its delta
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   const root = session({ id: 'root', cwd: project, usage: { uncachedInputTokens: 1000000 } })
   const ctx = context({ sessions: [root] })
-  const state = { flushed: new Map() }
+  const state = __createState()
 
   const first = await __buildSummary(ctx, settings, state, 'root')
   const afterFirst = (await readFile(first.logPath, 'utf8')).trim().split('\n').length
@@ -100,7 +101,7 @@ test('a persisted-only child is reported unpriced instead of estimated', async (
   const query = {
     traceSession: async () => ({ root: 'root', complete: true, descendants: [{ sessionId: 'cold-1', parentId: 'root', depth: 1 }] })
   }
-  const summary = await __buildSummary(context({ sessions: [root], query }), settings, { flushed: new Map() }, 'root')
+  const summary = await __buildSummary(context({ sessions: [root], query }), settings, __createState(), 'root')
 
   assert.equal(summary.totals.sessions, 2)
   assert.deepEqual(summary.totals.unpricedSessions, ['cold-1'])
@@ -115,7 +116,7 @@ test('a model with no catalog price stays unpriced and does not poison the tree 
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   const root = session({ id: 'root', cwd: project, provider: 'unknown-vendor', model: 'mystery-1', usage: { outputTokens: 500 } })
   const ctx = context({ sessions: [root] })
-  const summary = await __buildSummary(ctx, settings, { flushed: new Map() }, 'root')
+  const summary = await __buildSummary(ctx, settings, __createState(), 'root')
 
   assert.equal(summary.sessions[0].pricingSource, 'none')
   assert.equal(summary.sessions[0].usd, null)
@@ -126,24 +127,24 @@ test('a model with no catalog price stays unpriced and does not poison the tree 
 test('writeLog: false never touches the project folder', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 100 } })
-  const summary = await __buildSummary(context({ sessions: [root] }), __config({ writeLog: false }), { flushed: new Map() }, 'root')
+  const summary = await __buildSummary(context({ sessions: [root] }), __config({ writeLog: false }), __createState(), 'root')
   await assert.rejects(() => readFile(join(project, '.dsh-cost', 'cost.jsonl'), 'utf8'))
   assert.equal(summary.logPath, null)
 })
 
 test('unknown sessions and a missing store fail with named reasons', async () => {
   const ctx = context({ sessions: [] })
-  assert.deepEqual(await __buildSummary(ctx, settings, { flushed: new Map() }, 'nope'), { ok: false, reason: 'unknown-session' })
+  assert.deepEqual(await __buildSummary(ctx, settings, __createState(), 'nope'), { ok: false, reason: 'unknown-session' })
 
   const empty = { get: () => undefined }
-  assert.deepEqual(await __buildSummary(empty, settings, { flushed: new Map() }, 'root'), { ok: false, reason: 'session-store-unavailable' })
+  assert.deepEqual(await __buildSummary(empty, settings, __createState(), 'root'), { ok: false, reason: 'session-store-unavailable' })
 })
 
 test('a custom log directory is respected', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   await mkdir(join(project, '.git'), { recursive: true })
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 100 } })
-  const summary = await __buildSummary(context({ sessions: [root] }), __config({ logDir: '.cost' }), { flushed: new Map() }, 'root')
+  const summary = await __buildSummary(context({ sessions: [root] }), __config({ logDir: '.cost' }), __createState(), 'root')
   assert.equal(summary.logPath, join(project, '.cost', 'cost.jsonl'))
   assert.equal(await readFile(join(project, '.gitignore'), 'utf8'), '.cost/\n')
 })
@@ -174,9 +175,9 @@ test('model attribution reads the newest request header', () => {
 test('the Host forwards its configured language to the client', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 10 } })
-  const summary = await __buildSummary(context({ sessions: [root] }), __config({ language: 'ru' }), { flushed: new Map() }, 'root')
+  const summary = await __buildSummary(context({ sessions: [root] }), __config({ language: 'ru' }), __createState(), 'root')
   assert.equal(summary.language, 'ru')
-  const plain = await __buildSummary(context({ sessions: [root] }), __config({}), { flushed: new Map() }, 'root')
+  const plain = await __buildSummary(context({ sessions: [root] }), __config({}), __createState(), 'root')
   assert.equal(plain.language, null, 'an unset language lets the client fall back')
 })
 
@@ -200,8 +201,55 @@ test('a turn in a subagent flushes the whole tree it belongs to', () => {
 })
 
 test('config defaults are conservative', () => {
-  assert.deepEqual(__config(undefined), { writeLog: true, logDirectory: '.dsh-cost', language: null })
+  assert.deepEqual(__config(undefined), { writeLog: true, logDirectory: '.dsh-cost', language: null, ledgerTailBytes: __defaultLedgerTailBytes })
   assert.equal(__config({ writeLog: false }).writeLog, false)
   assert.equal(__config({ logDir: '  ' }).logDirectory, '.dsh-cost')
   assert.equal(__config({ language: 'zh' }).language, 'zh')
+})
+
+test('spend that no plan unit claimed is reported as unlabelled', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
+  await appendCostLog(project, [costRecord({ sessionId: 'root', model: 'deepseek-flash', deltaUsd: 0.42, cumulativeUsd: 0.42, usage: { outputTokens: 1000 } })], {})
+  const root = session({ id: 'root', cwd: project, usage: { outputTokens: 1000 } })
+  const summary = await __buildSummary(context({ sessions: [root] }), settings, __createState(), 'root')
+
+  assert.equal(summary.ok, true)
+  assert.ok(Math.abs(summary.unlabeledUsd - 0.42) < 1e-9, `expected the unclaimed spend, got ${summary.unlabeledUsd}`)
+  assert.equal(summary.ledger.records, 1)
+  assert.equal(summary.ledger.truncated, false)
+})
+
+test('a mark claims the spend that follows it, so nothing stays unlabelled', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
+  await appendMarks(project, [markRecord({ sessionId: 'root', label: 'research' })], {})
+  await appendCostLog(project, [costRecord({ sessionId: 'root', model: 'deepseek-flash', deltaUsd: 0.42, cumulativeUsd: 0.42, usage: { outputTokens: 1000 } })], {})
+  const root = session({ id: 'root', cwd: project, usage: { outputTokens: 1000 } })
+  const summary = await __buildSummary(context({ sessions: [root] }), settings, __createState(), 'root')
+
+  assert.equal(summary.unlabeledUsd, 0)
+  assert.equal(summary.ledger.marks, 1)
+})
+
+test('a second run over an unchanged tree appends nothing and reuses the read', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
+  await mkdir(join(project, '.git'), { recursive: true })
+  const root = session({ id: 'root', cwd: project, usage: { uncachedInputTokens: 1000000 } })
+  const ctx = context({ sessions: [root] })
+  const state = __createState()
+
+  const first = await __buildSummary(ctx, settings, state, 'root')
+  assert.equal(first.ledger.records, 1, 'the first run records the interval')
+  assert.equal(state.ledgerCache.size, 0, 'a write invalidates the cached read')
+
+  const second = await __buildSummary(ctx, settings, state, 'root')
+  assert.equal(second.ledger.records, 1, 'an unchanged tree adds no record')
+  assert.equal(second.totals.usd, first.totals.usd, 'and the figure holds')
+  assert.equal(state.ledgerCache.size, 1, 'a run that writes nothing leaves the read cached for the next poll')
+
+  // The interval is priced once: adding tokens prices only the difference.
+  root.usage = { uncachedInputTokens: 2000000 }
+  const third = await __buildSummary(ctx, settings, state, 'root')
+  assert.equal(third.ledger.records, 2)
+  assert.ok(Math.abs(third.totals.usd - 0.3) < 1e-9, `expected 1M off-peak + 1M more = 0.30, got ${third.totals.usd}`)
+  assert.equal(state.ledgerCache.size, 0, 'and the new record invalidates it again')
 })

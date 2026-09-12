@@ -107,6 +107,7 @@ const summary = {
   sessions: [{ sessionId: 'root', model: 'deepseek-flash', usd: 0.15 }],
   totals: { usd: 0.165, chatUsd: 0.15, subagentUsd: 0.015, subagentCount: 1, unpricedSessions: [] },
   budget: { usd: 25, spentUsd: 0.165, remainingUsd: 24.835, projection: 'ok', usdPerHour: 0.4 },
+  unlabeledUsd: 1.23,
   plan: {
     goal: 'beta',
     units: [
@@ -171,6 +172,8 @@ test('the readout carries the tree total and the budget, and the tooltip names t
   assert.match(tip, /scenarios: economy \$0\.2600 · balanced \$5\.930 · quality \$7\.420/)
   assert.match(tip, /cheapest adequate routing saves \$7\.160/)
   assert.match(tip, /cost log: \/tmp\/project\/\.dsh-cost\/cost\.jsonl/)
+  assert.match(tip, /\$1\.230 is not attributed to any plan unit/, 'unclaimed spend is called out')
+  assert.match(tip, /\u00b7 synthesis \(kimi-k3 \u2192 gemini-2\.5-flash-lite\): \$5\.670 planned/, 'route objects print as model names, never as [object Object]')
 })
 
 test('an over-budget projection is stated in the tooltip', async () => {
@@ -190,6 +193,7 @@ test('the interface speaks English, Chinese or Russian with equal content', asyn
   assert.match(zhNode.props.title, /token 费用估算/)
   assert.match(zhNode.props.title, /预算：/)
   assert.match(zhNode.props.title, /方案：/)
+  assert.match(zhNode.props.title, /\$1\.230 未归入任何计划单元/)
 
   const russian = loadBundle({ navigatorLanguage: 'ru-RU', fetchImpl: respondWith(summary) })
   russian.render({ sessionId: 'root', useProjection: () => usage })
@@ -198,6 +202,7 @@ test('the interface speaks English, Chinese or Russian with equal content', asyn
   assert.match(ruNode.props.title, /Стоимость токенов/)
   assert.match(ruNode.props.title, /бюджет:/)
   assert.match(ruNode.props.title, /сценарии:/)
+  assert.match(ruNode.props.title, /\$1\.230 не отнесено ни к одному пункту плана/)
 })
 
 test('a Host that does not answer degrades to tokens and says so', async () => {

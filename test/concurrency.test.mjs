@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { __buildSummary, __config } from '../lib/index.js'
+import { __buildSummary, __config, __createState } from '../lib/index.js'
 
 function session(id, cwd, tokens) {
   return {
@@ -39,7 +39,7 @@ test('three overlapping requests for one tree write one ledger line', async () =
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-race-'))
   const ctx = contextFor([session('root', project, 1000000)])
   const settings = __config({})
-  const state = { flushed: new Map() }
+  const state = __createState()
 
   const results = await Promise.all([
     __buildSummary(ctx, settings, state, 'root'),
@@ -58,7 +58,7 @@ test('a later change still appends exactly one more line', async () => {
   const root = session('root', project, 1000000)
   const ctx = contextFor([root])
   const settings = __config({})
-  const state = { flushed: new Map() }
+  const state = __createState()
 
   await Promise.all([__buildSummary(ctx, settings, state, 'root'), __buildSummary(ctx, settings, state, 'root')])
   root.usage = { uncachedInputTokens: 2000000 }
@@ -77,7 +77,7 @@ test('the queue is per session tree, so two chats flush independently', async ()
   const second = await mkdtemp(join(tmpdir(), 'dsh-cost-b-'))
   const ctx = contextFor([session('a', first, 1000000), session('b', second, 500000)])
   const settings = __config({})
-  const state = { flushed: new Map() }
+  const state = __createState()
 
   const [a, b] = await Promise.all([
     __buildSummary(ctx, settings, state, 'a'),
@@ -87,5 +87,5 @@ test('the queue is per session tree, so two chats flush independently', async ()
   assert.equal(b.ok, true)
   assert.equal((await ledgerLines(first)).length, 1)
   assert.equal((await ledgerLines(second)).length, 1)
-  assert.equal(state.chains.size, 0, 'finished trees leave no queue behind')
+  assert.deepEqual(state.locks.busy(), [], 'finished trees leave no queue behind')
 })

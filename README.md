@@ -25,6 +25,7 @@ Known limits, stated rather than hidden: only live sessions expose provider usag
     writeLog: true        # append the JSONL cost log into the project folder
     logDir: .dsh-cost      # directory name inside the project folder
     language: en          # en | zh | ru; omit to follow the harness locale, then the browser
+    ledgerTailBytes: 2097152  # how much of the cost log is read back per summary (2 MiB)
 ```
 
 ## Features
@@ -33,6 +34,9 @@ Known limits, stated rather than hidden: only live sessions expose provider usag
 - **Honest arithmetic.** DeepSeek is priced from its own published table including peak and off-peak tiers; cache writes bill at each provider's own cache-write price where one exists (Anthropic, OpenAI) and at the input price otherwise; a model with no price shows `—` rather than an invented number.
 - **Breakdown by chat, subagents and session tree.** The hover tooltip separates this chat from its subagents and shows the tree total, the token buckets and the models involved.
 - **Cost log in the project folder.** `<project>/.dsh-cost/cost.jsonl`, one JSON object per session per flush, with the tree position, four token buckets, cumulative and delta cost, and the pricing source. Inside a git work tree, `.dsh-cost/` is added to the project `.gitignore` on first write; a plain folder is left untouched — the log is welcome there, clutter is not.
+- **Interval pricing.** The JSONL log is the base: every flush prices only the tokens that arrived since the previous record, at the tariff in effect at that moment, so a chat that crosses a DeepSeek peak boundary keeps the price it was really billed at instead of being re-priced retroactively.
+- **Bounded, cached reads.** A summary reads only the tail of the log (`ledgerTailBytes`, 2 MiB by default) and reuses the cached read while the file's size and mtime are unchanged; when the tail starts mid-file the plugin reports `truncated` and `skippedBytes` instead of pretending to know the whole history.
+- **Nothing is quietly unaccounted.** Spend that belongs to no plan unit is named in the tooltip (`$1.230 is not attributed to any plan unit`) rather than folded into a total.
 - **Three languages.** English, Chinese and Russian, chosen from the plugin config, then the harness locale, then the browser language.
 
 ## Install
@@ -51,19 +55,24 @@ The package is a DSH bundle: the profile reconciles its patch layer automaticall
 | Other providers | bundled models.dev snapshot, cache read and cache write prices used exactly as published |
 | Unpublished cache read | falls back to the input price, which is an upper bound |
 | Unknown model | resolves to no price; the readout says `—` and the tooltip names the model |
+| Attribution | the log is the base: a recorded interval keeps the price it was billed at, only new tokens are priced |
 
 Refresh the snapshot with `npm run prices` (the seven curated providers) or `npm run prices:all` (every provider in the catalog).
+
+### How the number is computed
+
+The summary is built ledger-first: recorded deltas are summed from the log file, and only the tokens that arrived after the last record are priced at the current tariff. A chat that spans a peak boundary therefore shows what it really cost, not a retroactive double.
 
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"totalTokens":1200,"cumulativeUsd":0.006,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.0","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## Releasing
 
 ```sh
-npm test            # 83 tests; the schema checks need a DSH profile for the validator
+npm test            # 114 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public
@@ -110,6 +119,8 @@ cost_plan   {action: budget, budgetUsd: 25}                -> the widget then sh
 
 Two rules make the estimates usable rather than decorative. Estimates are **ranges**: a unit priced from declared tokens is exact, anything else carries a P50 and a P90 (twice the expected work by default, and the tool says whether the number came from `declared` tokens, from `history`, or from a `bootstrap` default). And a budget keeps a **20% reserve** for rework, because a plan without a buffer is a lie. A model with no price resolves to `—`; nothing is invented.
 
+Plan and budget files are read-modify-write, so every mutation goes through one queue per project folder: two model calls that refresh the plan at the same moment cannot lose each other's work. A refresh keeps the stored routing comparison while the plan inputs are unchanged and drops it with a note when they moved, because a comparison priced for other units is a lie. `plan.md` is generated in the language the readout reports.
+
 ### Which models are worth connecting
 
 `cost_scenarios` prices the same plan under four routings: **quality** (the preferred route for every unit), **connected** (the cheapest route already listed), **economy** (the cheapest adequate model in the whole catalog — which may mean connecting a provider you do not use yet) and **balanced** (preferred route for units marked `critical`, economy elsewhere). Each scenario reports expected and worst-case totals, whether it fits the budget, and the providers it needs.
@@ -120,6 +131,8 @@ The recommendation names the cost drivers, ranks what switching would save per u
 
 - Reasoning tokens are billed as output by the providers and are counted as output here.
 - Long-context tier prices published for some Gemini and Grok models are not applied yet; the base tier is used.
+- The live readout counts only the tail of the log (`ledgerTailBytes`, 2 MiB by default); older spend stays in the file and the summary reports the truncation.
+- The write queue serializes the plugin's own writes. A human editing `plan.json` at the moment the model writes it can still lose that edit; the file is small and meant to be reviewed, not co-edited.
 
 ## License
 
