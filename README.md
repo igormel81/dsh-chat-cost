@@ -6,6 +6,7 @@ English | [中文](README.zh.md) | [Русский](README.ru.md)
 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![DeepSeek Harness plugin](https://img.shields.io/badge/DeepSeek%20Harness-plugin-blueviolet)](#install)
+[![npm](https://img.shields.io/npm/v/dsh-chat-cost.svg)](https://www.npmjs.com/package/dsh-chat-cost)
 [![providers](https://img.shields.io/badge/providers-7%20%C2%B7%20139%20models-informational)](#pricing-rules)
 
 **Keywords:** DeepSeek Harness plugin, dsh plugin, dsh-plugin, token cost, cost per chat, subagent cost, session tree cost, LLM spend tracking, token usage, cost log, JSONL, local-first, DeepSeek V4.1 Flash, DeepSeek V4 Pro, OpenAI GPT-5, Anthropic Claude, Google Gemini, Kimi K3 (Moonshot), xAI Grok, Mistral, cache read and cache write pricing, peak and off-peak pricing, Cordis plugin.

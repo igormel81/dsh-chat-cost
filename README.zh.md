@@ -6,6 +6,7 @@
 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![DeepSeek Harness plugin](https://img.shields.io/badge/DeepSeek%20Harness-plugin-blueviolet)](#安装)
+[![npm](https://img.shields.io/npm/v/dsh-chat-cost.svg)](https://www.npmjs.com/package/dsh-chat-cost)
 [![providers](https://img.shields.io/badge/providers-7%20%C2%B7%20139%20models-informational)](#计价规则)
 
 **关键词：** DeepSeek Harness 插件、dsh 插件、dsh-plugin、token 费用、单次对话费用、子代理费用、会话树费用、LLM 花费统计、token 用量、费用日志、JSONL、本地优先、DeepSeek V4.1 Flash、DeepSeek V4 Pro、OpenAI GPT-5、Anthropic Claude、Google Gemini、Kimi K3（Moonshot）、xAI Grok、Mistral、缓存读取与写入计价、峰谷计价、Cordis 插件。
