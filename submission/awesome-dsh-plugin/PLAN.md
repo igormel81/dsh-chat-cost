@@ -56,3 +56,24 @@ The `Usage & Billing` section already holds close work: `dsh-api-dashboard`
 entry therefore leads with what is actually different here: a seven-provider
 catalog with cache pricing, budget-aware plan packing, routing scenarios, and the
 log written into the project folder — not with "cost tracking" in general.
+
+## Other channels, checked on 2026-09-12
+
+Crawl-based directories need no pull request: they scan the `dsh-plugin` topic
+and the npm registry, so publishing to npm is the gate, not a form.
+
+| Channel | How a plugin gets in | Our state |
+| --- | --- | --- |
+| [AdamPlatin123/dsh-plugin-radar](https://github.com/AdamPlatin123/dsh-plugin-radar) (1,464★, rescans every 6h) | "add the `dsh-plugin` topic → listed automatically within 8h"; a PR template exists for corrections | topic present; not listed yet |
+| [DshMarketPlace/dshmarketplace](https://github.com/DshMarketPlace/dshmarketplace) (3,420 listings, public API) | crawl; `GET /api/v1/plugins?q=…` serves the catalogue | `q=chat-cost` → `total: 0` |
+| [dsh-market](https://github.com/dsh-market/dsh-market) (3,529★) | reads the curated list above | follows the awesome-list merge |
+
+Measured through the marketplace API on the same day, the closest neighbours in
+the `usage` niche are small: `133563825as-ai/dsh-api-dashboard` is listed with 6
+stars, and `1569126506-sudo/dsh-team-cost` does not appear at all (`total: 0`).
+Nothing here changes the entry text, but it does mean the review question will be
+"why another cost plugin" — which the description answers by leading with
+interval pricing from the ledger, budget packing and routing scenarios.
+
+Re-check both crawlers a day after `npm publish`; if the radar still has not
+picked the repository up, open its PR template with the `dsh.bundle` evidence.
