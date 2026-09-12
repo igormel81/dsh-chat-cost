@@ -253,3 +253,26 @@ test('a second run over an unchanged tree appends nothing and reuses the read', 
   assert.ok(Math.abs(third.totals.usd - 0.3) < 1e-9, `expected 1M off-peak + 1M more = 0.30, got ${third.totals.usd}`)
   assert.equal(state.ledgerCache.size, 0, 'and the new record invalidates it again')
 })
+
+test('a session carrying the real projection state is priced, not reported as free', async () => {
+  // The harness hands over { totals, last }, and reading only the top level made
+  // every live chat cost $0. Both shapes must price identically.
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-shape-'))
+  const flat = session({ id: 'flat', cwd: project, usage: { uncachedInputTokens: 1000000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 } })
+  const projected = session({
+    id: 'projected',
+    cwd: project,
+    usage: {
+      totals: { uncachedInputTokens: 1000000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      last: { turn: 1, step: 1, buckets: { uncachedInputTokens: 10, outputTokens: 5, cacheReadTokens: 100, cacheWriteTokens: 0 } }
+    }
+  })
+
+  const fromFlat = await __buildSummary(context({ sessions: [flat] }), settings, __createState(), 'flat')
+  const fromProjection = await __buildSummary(context({ sessions: [projected] }), settings, __createState(), 'projected')
+
+  assert.ok(Math.abs(fromProjection.self.usd - 0.15) < 1e-9, `projected usd ${fromProjection.self.usd}`)
+  assert.equal(fromProjection.self.usd, fromFlat.self.usd, 'the wrapper must not change the price')
+  assert.equal(fromProjection.self.tokens.cacheRead, 0, 'totals wins over the last step')
+  assert.equal(fromProjection.self.tokens.uncachedInput, 1000000)
+})

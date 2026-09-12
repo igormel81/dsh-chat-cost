@@ -67,13 +67,13 @@ dsh plugin --profile web add dsh-chat-cost
 ## 费用日志格式
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.2","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.3","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## 发布流程
 
 ```sh
-npm test            # 120 项测试；schema 检查需要 DSH profile 提供校验器
+npm test            # 126 项测试；schema 检查需要 DSH profile 提供校验器
 npm run prices      # 发布前刷新内置价格目录
 npm version minor
 npm publish --access public
@@ -90,7 +90,7 @@ for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)
 npm test
 ```
 
-覆盖计价引擎（路由映射、模型 id 规范化、峰时窗口、缓存规则、未知模型）、两半的上下文纪律（Cordis 对插件未在 inject 中声明的任何属性都会抛错——它曾让宿主崩溃一次、让 Web 外壳崩溃一次，因此源码会被机械检查）、日志记录与真实文件写入（在临时目录中执行）、插件激活路径（对桩宿主执行 `apply`：路由、六个工具、按回合触发落盘、释放）、并发落盘，以及以类 React 钩子存储渲染的客户端正式产物——断言三种语言定义相同的键、每条消息都能带参数渲染、语言选择遵循 配置 → harness 语言 → 浏览器语言。
+覆盖计价引擎（路由映射、模型 id 规范化、峰时窗口、缓存规则、未知模型）、harness 可能给出的各种 token 统计形态（扁平结构、投影的 `totals` 包装、单步值、缓存信封）、两半的上下文纪律（Cordis 对插件未在 inject 中声明的任何属性都会抛错——它曾让宿主崩溃一次、让 Web 外壳崩溃一次，因此源码会被机械检查）、日志记录与真实文件写入（在临时目录中执行）、插件激活路径（对桩宿主执行 `apply`：路由、六个工具、按回合触发落盘、释放）、并发落盘，以及以类 React 钩子存储渲染的客户端正式产物——断言三种语言定义相同的键、每条消息都能带参数渲染、语言选择遵循 配置 → harness 语言 → 浏览器语言。
 
 有三项检查超出普通检出所能提供的范围：schema 检查通过 harness 自身的校验器运行工具 schema；启动套件把插件加载到 harness 实际使用的 Cordis 上（在那里从上下文而非加载器参数读取配置会抛错）；打包产物则在 `npm pack` 之后测试。三者都需要只在 DSH profile 内可解析的包，因此在 profile 之外会明确标记为跳过，而不是静默通过。完整运行的命令：
 
