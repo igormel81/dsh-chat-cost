@@ -1,0 +1,8 @@
+# Trilingual-pair consistency record (the DSH docs/i18n convention): the git blob
+# hash of each language as of the last confirmed-consistent state. All three
+# languages carry equal authority; after editing one side, bring the others along
+# and re-record with:
+#   for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
+README.md: 46a500a25d045e389d1f71ee04425bc880e3cd34
+README.zh.md: 3cd186aefd964a2f1d57e662588e3406dc623fff
+README.ru.md: 727e41b63ec42761dc92d4c77956feabecfdd2b2

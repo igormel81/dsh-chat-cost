@@ -1,0 +1,95 @@
+{
+  "name": "dsh-chat-cost",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness (dsh) plugin: live token cost of every chat, its subagents and the whole session tree — DeepSeek, OpenAI, Anthropic, Gemini, Kimi, Grok and Mistral prices from a bundled catalog, plus an append-only JSONL cost log inside your project folder.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "deepseek",
+    "cordis",
+    "token-cost",
+    "cost",
+    "cost-tracking",
+    "cost-log",
+    "llm-pricing",
+    "pricing",
+    "price",
+    "token-usage",
+    "usage",
+    "tokens",
+    "spend",
+    "budget",
+    "observability",
+    "openai",
+    "gpt-5",
+    "anthropic",
+    "claude",
+    "gemini",
+    "google",
+    "kimi",
+    "moonshot",
+    "grok",
+    "xai",
+    "mistral",
+    "cache-read",
+    "cache-write",
+    "peak-pricing",
+    "jsonl",
+    "local-first",
+    "session-tree",
+    "subagent"
+  ],
+  "license": "MIT",
+  "author": "igormel81 <igor.melnikov@gmail.com>",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "data",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "README.ru.md",
+    "README.i18n.yaml",
+    "LICENSE",
+    "scripts",
+    "test"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "prices": "node scripts/build-prices.mjs",
+    "prices:all": "node scripts/build-prices.mjs --all"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igormel81/dsh-chat-cost.git"
+  },
+  "homepage": "https://github.com/igormel81/dsh-chat-cost#readme",
+  "bugs": {
+    "url": "https://github.com/igormel81/dsh-chat-cost/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

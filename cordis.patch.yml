@@ -1,0 +1,15 @@
+# dsh-chat-cost bundle layer — one plugin row.
+#
+# Install:  dsh plugin --profile web add dsh-chat-cost
+# The profile reconciles this layer automatically (a dependency that declares
+# `dsh.bundle` joins `dsh.profile.bundles`), so no manual patch editing.
+#
+# Prices live in data/prices.json (refresh with `npm run prices`); the settings
+# below are the plugin's own knobs and can be overridden from a profile patch.
+- insert:
+    - id: dsh-chat-cost
+      name: dsh-chat-cost
+      config:
+        writeLog: true      # append the JSONL cost log into the project folder
+        logDir: .dsh-cost    # directory name inside the project folder
+        # language: en      # en | zh | ru; omit to follow the harness locale, then the browser

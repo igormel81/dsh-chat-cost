@@ -1,0 +1,78 @@
+# dsh-chat-cost
+
+Live token cost for every chat in the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (dsh) Web UI: the chat itself, its subagents and the whole session tree, priced from a bundled multi-provider catalog, with an append-only JSONL cost log written into your project folder.
+
+English | [中文](README.zh.md) | [Русский](README.ru.md)
+
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![DeepSeek Harness plugin](https://img.shields.io/badge/DeepSeek%20Harness-plugin-blueviolet)](#install)
+[![providers](https://img.shields.io/badge/providers-7%20%C2%B7%20139%20models-informational)](#pricing-rules)
+
+**Keywords:** DeepSeek Harness plugin, dsh plugin, dsh-plugin, token cost, cost per chat, subagent cost, session tree cost, LLM spend tracking, token usage, cost log, JSONL, local-first, DeepSeek V4.1 Flash, DeepSeek V4 Pro, OpenAI GPT-5, Anthropic Claude, Google Gemini, Kimi K3 (Moonshot), xAI Grok, Mistral, cache read and cache write pricing, peak and off-peak pricing, Cordis plugin.
+
+## Status
+
+Complete: the price catalog, the pricing engine (peak tiers, cache read and cache write rules), the Host half that walks the session tree, prices every session and appends the JSONL cost log, and the client readout in English, Chinese and Russian.
+
+Known limits, stated rather than hidden: only live sessions expose provider usage, so a persisted-only subagent session is listed without a price; long-context tier prices published for some Gemini and Grok models are not applied yet.
+
+## Configuration
+
+```yaml
+- id: dsh-chat-cost
+  name: dsh-chat-cost
+  config:
+    writeLog: true        # append the JSONL cost log into the project folder
+    logDir: .dsh-cost      # directory name inside the project folder
+    language: en          # en | zh | ru; omit to follow the harness locale, then the browser
+```
+
+## Features
+
+- **Multi-provider prices.** A bundled snapshot of the [models.dev](https://models.dev) catalog covers seven providers — DeepSeek, Moonshot, OpenAI, Anthropic, Google, xAI, Mistral — and every priced model of each (139 models today).
+- **Honest arithmetic.** DeepSeek is priced from its own published table including peak and off-peak tiers; cache writes bill at each provider's own cache-write price where one exists (Anthropic, OpenAI) and at the input price otherwise; a model with no price shows `—` rather than an invented number.
+- **Breakdown by chat, subagents and session tree.** The hover tooltip separates this chat from its subagents and shows the tree total, the token buckets and the models involved.
+- **Cost log in the project folder.** `<project>/.dsh-cost/cost.jsonl`, one JSON object per session per flush, with the tree position, four token buckets, cumulative and delta cost, and the pricing source. `.dsh-cost/` is added to the project `.gitignore` on first write.
+- **Three languages.** English, Chinese and Russian, chosen from the plugin config, then the harness locale, then the browser language.
+
+## Install
+
+```sh
+dsh plugin --profile web add dsh-chat-cost
+```
+
+The package is a DSH bundle: the profile reconciles its patch layer automatically (a dependency declaring `dsh.bundle` joins `dsh.profile.bundles`), so no patch editing is needed. Restart the host afterwards.
+
+## Pricing rules
+
+| Rule | Behaviour |
+| --- | --- |
+| DeepSeek | official table, peak hours 01:00-04:00 and 06:00-10:00 UTC on weekdays double the price; cache writes have no separate fee, so they bill at the input price |
+| Other providers | bundled models.dev snapshot, cache read and cache write prices used exactly as published |
+| Unpublished cache read | falls back to the input price, which is an upper bound |
+| Unknown model | resolves to no price; the readout says `—` and the tooltip names the model |
+
+Refresh the snapshot with `npm run prices` (the seven curated providers) or `npm run prices:all` (every provider in the catalog).
+
+## Cost log format
+
+```json
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"totalTokens":1200,"cumulativeUsd":0.006,"deltaUsd":0.002}
+```
+
+## Tests
+
+```sh
+npm test
+```
+
+Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the log records and file writes against real files in a temporary directory, and the shipped client bundle loaded with a stubbed module loader — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
+
+## Limitations
+
+- Reasoning tokens are billed as output by the providers and are counted as output here.
+- Long-context tier prices published for some Gemini and Grok models are not applied yet; the base tier is used.
+
+## License
+
+MIT
