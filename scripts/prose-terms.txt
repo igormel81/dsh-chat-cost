@@ -1,0 +1,14 @@
+dsh-chat-cost
+dsh plugin --profile web add
+.dsh-cost/cost.jsonl
+models.dev
+PLUGIN_VERSION
+ledgerTailBytes
+conversation.composer.dock
+conversation.chat.turnTail
+cost_price
+cost_history
+cost_estimate
+cost_plan
+cost_mark
+cost_scenarios

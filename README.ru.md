@@ -69,7 +69,7 @@ dsh plugin --profile web add dsh-chat-cost
 ## Формат лога расхода
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.1","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.2","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## Что и куда пишется
@@ -98,6 +98,18 @@ npm version minor
 npm publish --access public
 for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
 ```
+
+### Проверка текстов (необязательно, для мейнтейнера)
+
+Три README пишет ассистент, поэтому возможны две поломки, которых не видит ни один юнит-тест: невидимые символы и следы вставки из чата, а также факты, которые незаметно меняются при переписывании абзаца. Обе закрывает [`humanizer-ru`](https://github.com/Vladimir-Human/humanizer-ru) с опубликованными замерами ложных срабатываний, а `scripts/prose-check.mjs` его оборачивает:
+
+```sh
+uv tool install humanizer-ru
+npm run prose            # артефакты (жёсткий гейт), сверка фактов с прошлым выпуском, мягкие признаки стиля
+npm run prose -- --strict  # плюс падать, если инструмента нет, — для CI
+```
+
+Артефакты валят прогон; потеря термина из `scripts/prose-terms.txt` (имя пакета, путь лога, имена инструментов, два слота оболочки) — тоже; все остальные потерянные числа и цитаты печатаются, чтобы их оценил человек, потому что смена версии законно меняет числа. Мягкие признаки стиля только печатаются и никогда не валят сборку — сам инструмент отказывается считать их доказательством, и счётчик не должен решать за прозу. В `npm test` этого нет: набор должен запускаться у любого, кто поставил пакет, а Python-инструмент — не зависимость Node-плагина.
 
 Релиз можно провести и через workflow `publish` (Actions → publish → Run workflow): он прогоняет тесты, отказывается публиковать версию, которая уже есть в реестре, и публикует с `--provenance` через доверенную публикацию npm — токен не нужен. Разовая настройка доверенного издателя описана в начале файла workflow.
 

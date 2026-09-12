@@ -69,7 +69,7 @@ dsh plugin --profile web add dsh-chat-cost
 ## 费用日志格式
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.1","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.2","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## 写入了什么
@@ -98,6 +98,18 @@ npm version minor
 npm publish --access public
 for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
 ```
+
+### 文本检查（可选，面向维护者） 
+
+三份 README 由助手撰写，因此存在两类单元测试看不到的问题：不可见字符与粘贴残留，以及改写段落时被悄悄改动的**事实**。[`humanizer-ru`](https://github.com/Vladimir-Human/humanizer-ru) 两者都能覆盖，且公布了误报率数据，`scripts/prose-check.mjs` 则把它包了起来：
+
+```sh
+uv tool install humanizer-ru
+npm run prose            # 残留字符（硬性门槛）、与上一次发布的事实比对、软性风格信号
+npm run prose -- --strict  # 工具缺失时也失败，用于 CI
+```
+
+残留字符会让检查失败；`scripts/prose-terms.txt` 中的术语（包名、日志路径、工具名、两个客户端插槽）丢失同样失败；其余丢失的数字与引文只打印出来供人判断，因为版本升级本来就会改变数字。软性风格信号只打印、永不致命——工具本身拒绝把它们当作证据，计数器也不该替文章做决定。它不属于 `npm test`：测试套件必须能在任何安装本包的环境运行，而 Python 工具不是 Node 插件的依赖。
 
 发布也可以通过 `publish` workflow 完成（Actions → publish → Run workflow）：它会运行测试、拒绝发布已存在于注册表中的版本，并通过 npm 可信发布以 `--provenance` 上传，无需 npm 令牌。一次性配置可信发布者的步骤写在 workflow 文件开头。
 

@@ -69,7 +69,7 @@ The summary is built ledger-first: recorded deltas are summed from the log file,
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.1","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.2","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## What it writes
@@ -98,6 +98,18 @@ npm version minor
 npm publish --access public
 for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
 ```
+
+### Prose check (optional, for maintainers)
+
+The three READMEs are written by an assistant, so two failures are possible that no unit test sees: invisible characters and paste leftovers, and facts that change while a paragraph is rewritten. [`humanizer-ru`](https://github.com/Vladimir-Human/humanizer-ru) covers both, with published false-positive measurements, and `scripts/prose-check.mjs` wraps it:
+
+```sh
+uv tool install humanizer-ru
+npm run prose            # artefacts (a hard gate), facts against the last release, soft style signs
+npm run prose -- --strict  # also fail when the tool is absent, for CI
+```
+
+Artefacts fail the run; a lost term from `scripts/prose-terms.txt` (package name, log path, tool names, the two client slots) fails too; every other lost number or quotation is printed for a human to judge, because a version bump legitimately changes numbers. Soft style signs are printed and never fatal — the tool itself refuses to call them evidence, and a counter should not decide prose. It is not part of `npm test`: the suite must run for anyone who installs the package, and a Python tool is not a dependency of a Node plugin.
 
 A release can also run through the `publish` workflow (Actions → publish → Run workflow): it tests, refuses a version that is already on the registry, and publishes with `--provenance` through npm trusted publishing, so no npm token is needed. The one-time trusted-publisher setup is written at the top of the workflow file.
 
