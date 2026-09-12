@@ -1,0 +1,6 @@
+url: https://github.com/igormel81/dsh-chat-cost
+name: igormel81/dsh-chat-cost
+category: usage
+description:
+  en: 'Live token cost for every chat in the DSH Web UI: the chat, its subagents and the whole session tree, priced from a bundled seven-provider catalog (139 models with cache read and write rates), with budget-aware work plans, routing scenarios that show which models are worth connecting, and an append-only JSONL cost log in your project folder.'
+  zh: '为 DSH Web UI 的每个对话实时计算 token 费用：本对话、其子代理与整棵会话树，价格来自内置的七家供应商目录（139 个模型，含缓存读写费率），并提供按金额预算排布的工作计划、展示值得接入哪些模型的路由方案比较，以及写入项目目录的只追加 JSONL 费用日志。'
