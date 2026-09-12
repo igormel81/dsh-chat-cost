@@ -38,6 +38,7 @@ Known limits, stated rather than hidden: only live sessions expose provider usag
 - **Interval pricing.** The JSONL log is the base: every flush prices only the tokens that arrived since the previous record, at the tariff in effect at that moment, so a chat that crosses a DeepSeek peak boundary keeps the price it was really billed at instead of being re-priced retroactively.
 - **Bounded, cached reads.** A summary reads only the tail of the log (`ledgerTailBytes`, 2 MiB by default) and reuses the cached read while the file's size and mtime are unchanged; when the tail starts mid-file the plugin reports `truncated` and `skippedBytes` instead of pretending to know the whole history.
 - **Nothing is quietly unaccounted.** Spend that belongs to no plan unit is named in the tooltip (`$1.230 is not attributed to any plan unit`) rather than folded into a total.
+- **The price of each answer, under the answer.** Every finished turn gets its own cost in the transcript, priced from that turn's own usage events rather than sliced out of the session total, and refreshed the moment the turn closes. The composer readout shares one poll with those badges, so a finished answer updates both at once.
 - **Every chat, open or not.** A chat that is not currently open has no live session, so the readout prices it from the cost log and labels the number as recorded; a chat the log has never seen shows `—` with the reason instead of disappearing. Opening it makes it live, prices it exactly, and writes the missing record.
 - **Three languages.** English, Chinese and Russian, chosen from the plugin config, then the harness locale, then the browser language.
 
@@ -68,13 +69,13 @@ The summary is built ledger-first: recorded deltas are summed from the log file,
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.4","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.0","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## Releasing
 
 ```sh
-npm test            # 128 tests; the schema checks need a DSH profile for the validator
+npm test            # 140 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public
@@ -91,7 +92,7 @@ The package is a DSH bundle: `dsh plugin --profile web add dsh-chat-cost` instal
 npm test
 ```
 
-Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the usage reader against every shape the harness hands over (flat, the projection's `totals` wrapper, a single step, the cache envelope), the context discipline of both halves (Cordis throws on any property a plugin did not inject, which took the host down once and the web shell once, so the source is checked mechanically), the log records and file writes against real files in a temporary directory, the plugin activation path (`apply` against a stub host: route, six tools, turn-driven flush, disposal), overlapping flushes, and the shipped client bundle rendered with a React-like hook store — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
+Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the per-turn fold (a streamed sample replaced by the final one, steps summed within a turn, the model in effect attributed to the turn that used it), the usage reader against every shape the harness hands over (flat, the projection's `totals` wrapper, a single step, the cache envelope), the context discipline of both halves (Cordis throws on any property a plugin did not inject, which took the host down once and the web shell once, so the source is checked mechanically), the log records and file writes against real files in a temporary directory, the plugin activation path (`apply` against a stub host: route, six tools, turn-driven flush, disposal), overlapping flushes, and the shipped client bundle rendered with a React-like hook store — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
 
 Three suites go further than a plain checkout can: the schema checks run the tool schemas through the harness's own validator, the boot suite loads the plugin on the real Cordis the harness uses (where reading config from the context instead of the loader argument throws), and the packaged artifact is tested after `npm pack`. All three need packages that resolve only inside a DSH profile, so outside one they are reported as skipped rather than silently passing. For the full run:
 

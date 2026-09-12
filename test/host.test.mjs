@@ -351,3 +351,44 @@ test('a session the log never saw is reported without a price, and an unresolvab
   const blind = context({ sessions: [], query: { traceSession: async () => { throw new Error('not found') } } })
   assert.deepEqual(await __buildSummary(blind, settings, __createState(), 'gone'), { ok: false, reason: 'unknown-session' })
 })
+
+test('the summary carries a price per turn, so an answer can show its own cost', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-turns-'))
+  const root = session({
+    id: 'root',
+    cwd: project,
+    usage: { uncachedInputTokens: 2000000, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 }
+  })
+  root.events = [
+    ...root.events,
+    { type: 'assistant/message', data: { turn: 1, step: 1, usage: { inputTokens: 1000000, outputTokens: 0 } } },
+    { type: 'assistant/message', data: { turn: 2, step: 1, usage: { inputTokens: 500000, outputTokens: 0 } } }
+  ]
+
+  const summary = await __buildSummary(context({ sessions: [root] }), settings, __createState(), 'root')
+
+  assert.equal(Array.isArray(summary.turns), true)
+  assert.deepEqual(summary.turns.map((turn) => turn.turn), [1, 2])
+  // DeepSeek flash off-peak: 0.15 per million input tokens.
+  assert.ok(Math.abs(summary.turns[0].usd - 0.15) < 1e-9, `turn 1 usd ${summary.turns[0].usd}`)
+  assert.ok(Math.abs(summary.turns[1].usd - 0.075) < 1e-9, `turn 2 usd ${summary.turns[1].usd}`)
+  assert.equal(summary.turns[0].model, 'deepseek-flash')
+  assert.equal(summary.turns[0].pricingSource, 'official')
+  assert.equal(summary.turns[0].tier, 'off-peak')
+  assert.equal(summary.turns[0].tokens, 1000000)
+})
+
+test('a chat priced from the log has no per-turn numbers to offer', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-turns-recorded-'))
+  await appendCostLog(project, [
+    costRecord({ sessionId: 'past', rootSessionId: 'past', depth: 0, kind: 'chat', provider: 'deepseek-official', model: 'deepseek-flash', usage: { uncachedInputTokens: 1000 }, cumulativeUsd: 0.00015, deltaUsd: 0.00015 })
+  ])
+  const ctx = context({
+    sessions: [],
+    query: { traceSession: async () => ({ target: { header: { id: 'past', cwd: project } }, root: { header: { id: 'past', cwd: project } }, descendants: [], complete: true }) }
+  })
+
+  const summary = await __buildSummary(ctx, settings, __createState(), 'past')
+  assert.equal(summary.recorded, true)
+  assert.deepEqual(summary.turns, [], 'the log has no turn boundaries, so none are invented')
+})

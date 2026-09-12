@@ -38,6 +38,7 @@
 - **按区间计价。** 以 JSONL 日志为准：每次落盘只对上次记录之后新增的 token 按当时生效的价格计费。跨过 DeepSeek 峰时边界的对话保留实际计费价格，不会被追溯重算。
 - **有界读取与缓存。** 汇总只读取日志尾部（`ledgerTailBytes`，默认 2 MiB），并在文件大小与修改时间未变时复用缓存；若尾部从文件中间开始，插件会报告 `truncated` 与 `skippedBytes`，而不是假装掌握全部历史。
 - **不会悄悄漏账。** 未归入任何计划单元的费用会在提示中点名（`$1.230 未归入任何计划单元`），而不是混进合计。
+- **每个回答下面都有它自己的费用。** 已完成的每一轮都会在对话中显示费用：它按该轮自身的使用事件计价，而不是从会话总额里切一块，并在该轮结束时立即刷新。输入区的读数与这些标记共用同一次轮询，因此回答完成时两者会同时更新。
 - **每个对话都有读数，无论是否打开。** 未打开的对话没有活动会话，因此读数按费用日志计价并标注为“日志记录”；日志中从未出现过的对话显示 `—` 并说明原因，而不是整行消失。打开它后会成为活动会话，被精确计价，并补写缺失的记录。
 - **三种语言。** 英语、中文、俄语，依次按插件配置、harness 语言设置、浏览器语言选择。
 
@@ -68,13 +69,13 @@ dsh plugin --profile web add dsh-chat-cost
 ## 费用日志格式
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.5.4","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.0","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## 发布流程
 
 ```sh
-npm test            # 128 项测试；schema 检查需要 DSH profile 提供校验器
+npm test            # 140 项测试；schema 检查需要 DSH profile 提供校验器
 npm run prices      # 发布前刷新内置价格目录
 npm version minor
 npm publish --access public
@@ -91,7 +92,7 @@ for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)
 npm test
 ```
 
-覆盖计价引擎（路由映射、模型 id 规范化、峰时窗口、缓存规则、未知模型）、harness 可能给出的各种 token 统计形态（扁平结构、投影的 `totals` 包装、单步值、缓存信封）、两半的上下文纪律（Cordis 对插件未在 inject 中声明的任何属性都会抛错——它曾让宿主崩溃一次、让 Web 外壳崩溃一次，因此源码会被机械检查）、日志记录与真实文件写入（在临时目录中执行）、插件激活路径（对桩宿主执行 `apply`：路由、六个工具、按回合触发落盘、释放）、并发落盘，以及以类 React 钩子存储渲染的客户端正式产物——断言三种语言定义相同的键、每条消息都能带参数渲染、语言选择遵循 配置 → harness 语言 → 浏览器语言。
+覆盖计价引擎（路由映射、模型 id 规范化、峰时窗口、缓存规则、未知模型）、按轮的折算（流式样本被最终样本替换、同一轮的各步相加、按实际使用把模型归属到相应轮次）、harness 可能给出的各种 token 统计形态（扁平结构、投影的 `totals` 包装、单步值、缓存信封）、两半的上下文纪律（Cordis 对插件未在 inject 中声明的任何属性都会抛错——它曾让宿主崩溃一次、让 Web 外壳崩溃一次，因此源码会被机械检查）、日志记录与真实文件写入（在临时目录中执行）、插件激活路径（对桩宿主执行 `apply`：路由、六个工具、按回合触发落盘、释放）、并发落盘，以及以类 React 钩子存储渲染的客户端正式产物——断言三种语言定义相同的键、每条消息都能带参数渲染、语言选择遵循 配置 → harness 语言 → 浏览器语言。
 
 有三项检查超出普通检出所能提供的范围：schema 检查通过 harness 自身的校验器运行工具 schema；启动套件把插件加载到 harness 实际使用的 Cordis 上（在那里从上下文而非加载器参数读取配置会抛错）；打包产物则在 `npm pack` 之后测试。三者都需要只在 DSH profile 内可解析的包，因此在 profile 之外会明确标记为跳过，而不是静默通过。完整运行的命令：
 

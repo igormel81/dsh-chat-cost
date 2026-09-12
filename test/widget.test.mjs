@@ -21,8 +21,13 @@ function loadBundle({ navigatorLanguage = 'en-US', fetchImpl = async () => { thr
     navigator: { language: navigatorLanguage },
     fetch: fetchImpl,
     setInterval: () => 0,
-    clearInterval: () => {}
+    clearInterval: () => {},
+    // Timers are recorded, not fired: a test can see that a retry was scheduled
+    // without waiting for it.
+    setTimeout: (callback, ms) => { scheduled.push({ callback, ms }); return scheduled.length },
+    clearTimeout: (id) => { if (typeof id === 'number' && id > 0) scheduled[id - 1] = null }
   }
+  const scheduled = []
   // `document` is a free identifier in the bundle, so it is injected the same way.
   const styles = []
   const document = {
@@ -61,13 +66,19 @@ function loadBundle({ navigatorLanguage = 'en-US', fetchImpl = async () => { thr
     throw new Error(`unexpected require: ${specifier}`)
   })
 
-  const slot = { render: null, register: null }
+  // The plugin registers into two slots now — the composer readout and the
+  // per-answer tail — so the stub keeps every registration by slot name.
+  const slot = { registrations: [], renders: new Map(), register: null, render: null }
   const base = {
     get(name) {
       if (name === 'slots') {
         return {
           inject: (_name, callback) => { callback() },
-          register: (spec, render) => { slot.register = spec; slot.render = render }
+          register: (spec, render) => {
+            slot.registrations.push(spec)
+            slot.renders.set(spec.name, render)
+            if (spec.name === 'conversation.composer.dock') { slot.register = spec; slot.render = render }
+          }
         }
       }
       if (name === 'locale') return localeService
@@ -100,7 +111,19 @@ function loadBundle({ navigatorLanguage = 'en-US', fetchImpl = async () => { thr
     cursor = 0
     return element.type(element.props)
   }
-  return { loaded, slot, render, requires, store, styles }
+  /** Render one registration of any slot by name, with fresh hooks. */
+  const renderSlot = (name) => {
+    const factory = slot.renders.get(name)
+    if (factory === undefined) return () => null
+    return (props) => {
+      const element = factory(props)
+      if (element === null || element === undefined) return null
+      if (typeof element.type !== 'function') return element
+      cursor = 0
+      return element.type(element.props)
+    }
+  }
+  return { loaded, slot, render, renderSlot, requires, store, styles, scheduled }
 }
 
 const usage = { uncachedInputTokens: 1000000, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 }
@@ -254,4 +277,58 @@ test('numbers taken from the log are labelled as such', async () => {
 
   assert.match(node.children.join(''), /≈ \$1\.500/, 'the logged total is shown')
   assert.match(node.props.title, /what the cost log recorded/, 'and the tooltip says where it comes from')
+})
+
+test('the cost of one answer is registered for the turn tail, with the selector the slot requires', () => {
+  const { slot } = loadBundle()
+  const tail = slot.registrations.find((entry) => entry.name === 'conversation.chat.turnTail')
+  assert.ok(tail !== undefined, 'the plugin contributes to conversation.chat.turnTail')
+  assert.equal(typeof tail.select, 'function', 'a chain slot requires a selector')
+  assert.deepEqual(tail.select({ turn: { turn: 7 } }), { turn: 7 })
+  assert.equal(tail.select({ turn: undefined }), null)
+  assert.equal(tail.select(null), null)
+})
+
+test('each answer carries its own cost, taken from the Host turn by turn', async () => {
+  const withTurns = {
+    ...summary,
+    turns: [
+      { turn: 1, tokens: 1200, usd: 0.0012, provider: 'deepseek-official', model: 'deepseek-flash', pricingSource: 'official', tier: 'off-peak' },
+      { turn: 2, tokens: 900, usd: 0.0009, provider: 'deepseek-official', model: 'deepseek-flash', pricingSource: 'official', tier: 'off-peak' }
+    ]
+  }
+  const { renderSlot } = loadBundle({ fetchImpl: respondWith(withTurns) })
+  const badge = renderSlot('conversation.chat.turnTail')
+  const props = { sessionId: 'root', matched: { turn: 2 } }
+
+  badge(props)
+  await new Promise((resolve) => setImmediate(resolve))
+  const node = badge(props)
+
+  assert.ok(node !== null, 'the badge renders once the summary arrives')
+  assert.match(node.children.join(''), /≈ \$0\.0009/, 'and shows the turn it was given, not the session total')
+  assert.match(node.props.title, /Cost of this answer/)
+  assert.match(node.props.title, /deepseek-flash/)
+  assert.match(node.props.title, /900 tokens/)
+})
+
+test('an answer the Host has no price for stays quiet instead of guessing', async () => {
+  const withTurns = { ...summary, turns: [{ turn: 1, tokens: 10, usd: null, provider: null, model: null, pricingSource: 'none', tier: null }] }
+  const { renderSlot, scheduled } = loadBundle({ fetchImpl: respondWith(withTurns) })
+  const badge = renderSlot('conversation.chat.turnTail')
+
+  badge({ sessionId: 'root', matched: { turn: 1 } })
+  await new Promise((resolve) => setImmediate(resolve))
+  const unpriced = badge({ sessionId: 'root', matched: { turn: 1 } })
+  assert.equal(unpriced.props.className, 'dsh-chat-cost dsh-chat-cost--muted')
+  assert.match(unpriced.props.title, /no price in the catalog/)
+
+  // A turn the Host never mentions renders nothing, but not silently forever:
+  // the badge asks again, because the answer may simply not have reached the
+  // Host at the moment the turn closed.
+  const missing = badge({ sessionId: 'root', matched: { turn: 99 } })
+  assert.equal(missing, null)
+  const retries = scheduled.filter((entry) => entry !== null)
+  assert.ok(retries.length > 0, 'a missing turn schedules another look')
+  assert.equal(retries[0].ms, 700)
 })
