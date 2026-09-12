@@ -25,6 +25,13 @@ on:
         description: dist-tag to publish under
         type: string
         default: latest
+      mode:
+        description: direct publishes now; stage submits for a 2FA approval on npmjs.com
+        type: choice
+        options:
+          - direct
+          - stage
+        default: direct
 
 permissions:
   contents: read
@@ -74,5 +81,11 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish
-        if: inputs.dry_run == false
+        if: inputs.dry_run == false && inputs.mode == 'direct'
         run: npm publish --access public --provenance --tag "${{ inputs.dist_tag }}"
+
+      # Staged publishing needs npm >= 11.15 and 2FA on the account; the version
+      # only reaches the registry once a maintainer approves it on npmjs.com.
+      - name: Stage for approval
+        if: inputs.dry_run == false && inputs.mode == 'stage'
+        run: npm stage publish --tag "${{ inputs.dist_tag }}"
