@@ -65,7 +65,14 @@ jobs:
       - name: Test
         run: node --test test/*.test.mjs
 
+      # `npm pack` proves the tarball contents and the version stamp without
+      # touching the registry: `npm publish --dry-run` still refuses a version
+      # that is already published, which is exactly what a dry run tends to be
+      # asked for. Everything except the registry write is exercised here.
+      - name: Package without publishing
+        if: inputs.dry_run
+        run: npm pack --dry-run
+
       - name: Publish
-        run: |
-          npm publish --access public --provenance --tag "${{ inputs.dist_tag }}" \
-            ${{ inputs.dry_run && '--dry-run' || '' }}
+        if: inputs.dry_run == false
+        run: npm publish --access public --provenance --tag "${{ inputs.dist_tag }}"
