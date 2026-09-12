@@ -9,8 +9,11 @@
  * published false-positive measurements, so this script is a thin wrapper, not a
  * second opinion:
  *
- *   humanizer-markers   artefacts (zero-width marks, paste leftovers) — a hard
- *                       gate: a document carrying those is broken, not stylish
+ *   humanizer-markers   artefacts (paste leftovers). Class A is a hard gate —
+ *                       its published false-positive rate is zero — while class B
+ *                       (zero-width marks, exotic spaces) is printed, because its
+ *                       rate is small but not zero and a counter should not
+ *                       decide a document
  *   humanizer-facts     diff against the last released text. A lost protected
  *                       term fails; any other lost number or quotation is
  *                       printed for a human to judge, because a version bump
@@ -27,7 +30,7 @@
  *   npm run prose -- --strict   # fail when the tool is missing, for CI
  */
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -57,17 +60,37 @@ function git(args) {
   return result.status === 0 ? result.stdout : null
 }
 
-const probe = run('humanizer-markers', ['--class', 'a', ...DOCS])
+// Only files that are here: the tool treats a missing path as an error, and a
+// maintainer script must not report "artefacts found" when it merely misread its
+// own argument list. The package tarball ships the READMEs but not submission/.
+const present = DOCS.filter((file) => existsSync(join(root, file)))
+const absent = DOCS.filter((file) => present.includes(file) === false)
+
+const probe = run('humanizer-markers', ['--class', 'a', ...present])
 if (probe.missing === true) {
   console.log('humanizer-ru is not installed.')
   console.log('  uv tool install humanizer-ru   # then: npm run prose')
   if (strict) process.exit(1)
   process.exit(0)
 }
+if (absent.length > 0) console.log(`note: not present here, skipped: ${absent.join(', ')}`)
 
-// 1) Artefacts: a document with paste leftovers is broken, so this one fails.
+// 1) Artefacts. Exit 0 is a pass, 1 means class A was found, anything else is
+// the tool failing rather than a finding — the two must not be confused.
 show('artefacts in the documentation (humanizer-markers, class A):', probe.out)
-if (probe.status !== 0) problems.push('chat-insertion artefacts found in the documentation')
+if (probe.status === 1) problems.push('class A chat-insertion artefacts found in the documentation')
+else if (probe.status !== 0) problems.push(`humanizer-markers could not run (exit ${probe.status})`)
+
+// Class B is a small-but-nonzero false-positive class by the tool's own
+// measurement, so it is shown when it appears and never fails the run.
+const warned = /предупреждений класса B:\s*(\d+)/.exec(probe.out)
+if (warned !== null && Number(warned[1]) > 0) {
+  const all = run('humanizer-markers', ['--class', 'all', ...present])
+  if (all.missing !== true) {
+    const detail = all.out.split('\n').filter((line) => line.startsWith('Найдено маркеров') === false && line.trim() !== '')
+    show(`class B markers worth a look (${warned[1]}, never fatal on their own):`, detail.slice(0, 10).join('\n'))
+  }
+}
 
 // 2) Facts against the last release. Protected terms are load-bearing names and
 // commands; losing one is a documentation bug rather than a wording change.
