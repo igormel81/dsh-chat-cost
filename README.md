@@ -73,7 +73,7 @@ The summary is built ledger-first: recorded deltas are summed from the log file,
 ## Releasing
 
 ```sh
-npm test            # 114 tests; the schema checks need a DSH profile for the validator
+npm test            # 117 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public
@@ -92,7 +92,7 @@ npm test
 
 Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the log records and file writes against real files in a temporary directory, the plugin activation path (`apply` against a stub host: route, six tools, turn-driven flush, disposal), overlapping flushes, and the shipped client bundle rendered with a React-like hook store — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
 
-Two suites go further than a plain checkout can: the schema checks run the tool schemas through the harness's own validator, and the packaged artifact is tested after `npm pack`. Both need `@deepseek-ai/dsh-tools`, which resolves only inside a DSH profile, so outside one they are reported as skipped rather than silently passing. For the full run:
+Three suites go further than a plain checkout can: the schema checks run the tool schemas through the harness's own validator, the boot suite loads the plugin on the real Cordis the harness uses (where reading config from the context instead of the loader argument throws), and the packaged artifact is tested after `npm pack`. All three need packages that resolve only inside a DSH profile, so outside one they are reported as skipped rather than silently passing. For the full run:
 
 ```sh
 dsh plugin --profile web add link:$PWD

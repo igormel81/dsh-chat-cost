@@ -1,8 +1,12 @@
 /**
- * The activation path: `apply(ctx)` against a stub host. This is what the
- * harness actually runs at boot — route registration, tool registration, the
- * turn-driven flush wiring and disposal — and until now only its parts were
- * covered, never the wiring.
+ * The activation path: `apply(ctx, config)` against a stub host. This is what
+ * the harness actually runs at boot — route registration, tool registration,
+ * the turn-driven flush wiring and disposal.
+ *
+ * The stub refuses `ctx.config` exactly as Cordis does: a property the plugin
+ * did not inject throws there, and reading config from the context instead of
+ * the second argument once took the whole host down at boot. The Proxy below
+ * keeps that mistake from passing here.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -12,7 +16,7 @@ import { join } from 'node:path'
 import { apply } from '../lib/index.js'
 
 /** A minimal stand-in for the Cordis host context the plugin boots into. */
-function hostContext({ sessions = [], projections = true, withTools = true, withQuery = false } = {}) {
+function hostContext({ sessions = [], projections = true, withTools = true, withQuery = false, config = {} } = {}) {
   const byId = new Map(sessions.map((session) => [session.id, session]))
   const routes = []
   const registered = []
@@ -21,8 +25,7 @@ function hostContext({ sessions = [], projections = true, withTools = true, with
 
   const webServer = { register: (route) => { routes.push(route); return () => {} } }
 
-  const ctx = {
-    config: {},
+  const base = {
     // `inject: ['webServer']` publishes the service as a context property; the
     // stub must model that, not only ctx.get().
     webServer,
@@ -51,6 +54,15 @@ function hostContext({ sessions = [], projections = true, withTools = true, with
     __listeners: listeners,
     __dispose: () => { for (const disposer of disposers) disposer() }
   }
+  const ctx = new Proxy(base, {
+    get(target, property) {
+      if (property === 'config') {
+        throw new Error('cannot get property "config" without inject')
+      }
+      return Reflect.get(target, property)
+    }
+  })
+
   return ctx
 }
 
@@ -77,7 +89,7 @@ function fakeResponse() {
 
 test('apply registers the summary route and all six tools', () => {
   const ctx = hostContext({ sessions: [] })
-  apply(ctx)
+  apply(ctx, {})
 
   assert.equal(ctx.__routes.length, 1)
   assert.equal(ctx.__routes[0].kind, 'exact')
@@ -98,7 +110,7 @@ test('apply registers the summary route and all six tools', () => {
 
 test('a composition without the tools registry still boots', () => {
   const ctx = hostContext({ sessions: [], withTools: false })
-  apply(ctx)
+  apply(ctx, {})
   assert.equal(ctx.__routes.length, 1, 'the widget route is registered regardless')
   assert.equal(ctx.__tools.length, 0)
 })
@@ -111,7 +123,7 @@ test('the route answers with a real summary for the session tree', async () => {
       session('child', { cwd: project, parent: 'root', provider: 'moonshot', model: 'kimi-k3', usage: { outputTokens: 1000 } })
     ]
   })
-  apply(ctx)
+  apply(ctx, {})
   const handler = ctx.__routes[0].handler
 
   const { res, captured } = fakeResponse()
@@ -134,7 +146,7 @@ test('the route answers with a real summary for the session tree', async () => {
 
 test('the route rejects a wrong method and a missing session id by name', async () => {
   const ctx = hostContext({ sessions: [session('root', { cwd: '/tmp' })] })
-  apply(ctx)
+  apply(ctx, {})
   const handler = ctx.__routes[0].handler
 
   const post = fakeResponse()
@@ -158,7 +170,7 @@ test('a turn in a subagent schedules a flush of its whole tree, and disposal is 
       session('child', { cwd: project, parent: 'root', usage: { outputTokens: 25 } })
     ]
   })
-  apply(ctx)
+  apply(ctx, {})
   const listener = ctx.__listeners.find((entry) => entry.event === 'session/event').listener
 
   // A turn end fires the debounced flush; other events are ignored.

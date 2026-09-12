@@ -73,7 +73,7 @@ dsh plugin --profile web add dsh-chat-cost
 ## 发布流程
 
 ```sh
-npm test            # 114 项测试；schema 检查需要 DSH profile 提供校验器
+npm test            # 117 项测试；schema 检查需要 DSH profile 提供校验器
 npm run prices      # 发布前刷新内置价格目录
 npm version minor
 npm publish --access public
@@ -92,7 +92,7 @@ npm test
 
 覆盖计价引擎（路由映射、模型 id 规范化、峰时窗口、缓存规则、未知模型）、日志记录与真实文件写入（在临时目录中执行）、插件激活路径（对桩宿主执行 `apply`：路由、六个工具、按回合触发落盘、释放）、并发落盘，以及以类 React 钩子存储渲染的客户端正式产物——断言三种语言定义相同的键、每条消息都能带参数渲染、语言选择遵循 配置 → harness 语言 → 浏览器语言。
 
-有两套检查超出普通检出所能提供的范围：schema 检查通过 harness 自身的校验器运行工具 schema，打包产物则在 `npm pack` 之后测试。两者都需要 `@deepseek-ai/dsh-tools`，它只在 DSH profile 内可解析，因此在 profile 之外会明确标记为跳过，而不是静默通过。完整运行的命令：
+有三项检查超出普通检出所能提供的范围：schema 检查通过 harness 自身的校验器运行工具 schema；启动套件把插件加载到 harness 实际使用的 Cordis 上（在那里从上下文而非加载器参数读取配置会抛错）；打包产物则在 `npm pack` 之后测试。三者都需要只在 DSH profile 内可解析的包，因此在 profile 之外会明确标记为跳过，而不是静默通过。完整运行的命令：
 
 ```sh
 dsh plugin --profile web add link:$PWD
