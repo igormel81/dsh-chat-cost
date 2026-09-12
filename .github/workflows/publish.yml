@@ -1,0 +1,71 @@
+name: publish
+
+# Token-free releases through npm trusted publishing (OIDC): the runner asks
+# GitHub for a short-lived identity token, npm exchanges it for the right to
+# publish this package, and the published tarball carries a provenance
+# attestation. No long-lived npm token is stored anywhere.
+#
+# One-time setup on npmjs.com — package page -> Settings -> Trusted Publisher ->
+# GitHub Actions, with:
+#   Organization or user: igormel81
+#   Repository:           dsh-chat-cost
+#   Workflow filename:    publish.yml
+#   Environment:          (leave empty; this workflow declares none)
+# Until that is configured the publish step fails with 403, which is why the
+# workflow is dispatched by hand and defaults to a dry run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Package and test without publishing
+        type: boolean
+        default: true
+      dist_tag:
+        description: dist-tag to publish under
+        type: string
+        default: latest
+
+permissions:
+  contents: read
+  id-token: write # trusted publishing and provenance both need this
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs a recent npm; the one in the runner image lags.
+      - name: Use the current npm
+        run: npm install --global npm@latest
+
+      - name: The version in package.json is the version the plugin stamps into cost logs
+        run: |
+          pkg=$(node -p "require('./package.json').version")
+          stamped=$(sed -n "s/^const PLUGIN_VERSION = '\(.*\)'$/\1/p" lib/index.js)
+          echo "package.json $pkg, PLUGIN_VERSION $stamped"
+          test "$pkg" = "$stamped"
+
+      - name: Refuse to publish a version that is already on the registry
+        if: inputs.dry_run == false
+        run: |
+          pkg=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if npm view "$pkg@$version" version >/dev/null 2>&1; then
+            echo "::error::$pkg@$version is already published; bump the version first"
+            exit 1
+          fi
+
+      - name: Test
+        run: node --test test/*.test.mjs
+
+      - name: Publish
+        run: |
+          npm publish --access public --provenance --tag "${{ inputs.dist_tag }}" \
+            ${{ inputs.dry_run && '--dry-run' || '' }}

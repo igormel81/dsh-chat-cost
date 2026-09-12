@@ -80,6 +80,8 @@ npm publish --access public
 for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
 ```
 
+发布也可以通过 `publish` workflow 完成（Actions → publish → Run workflow）：它会运行测试、拒绝发布已存在于注册表中的版本，并通过 npm 可信发布以 `--provenance` 上传，无需 npm 令牌。一次性配置可信发布者的步骤写在 workflow 文件开头。
+
 本包是 DSH bundle：`dsh plugin --profile web add dsh-chat-cost` 即可安装，profile 会自动合并补丁层；对已安装的用户来说，一次发布只改变版本号。请把 `lib/index.js` 中的 `PLUGIN_VERSION` 与包版本一起更新——它会写入每条费用日志记录，便于追溯某条账目由哪个版本写入。修改任一 README 后，请重新记录 `README.i18n.yaml` 中的哈希：在三种语言重新一致之前，测试会失败。
 
 ## 测试

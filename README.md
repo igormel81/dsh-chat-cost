@@ -80,6 +80,8 @@ npm publish --access public
 for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
 ```
 
+A release can also run through the `publish` workflow (Actions → publish → Run workflow): it tests, refuses a version that is already on the registry, and publishes with `--provenance` through npm trusted publishing, so no npm token is needed. The one-time trusted-publisher setup is written at the top of the workflow file.
+
 The package is a DSH bundle: `dsh plugin --profile web add dsh-chat-cost` installs it and the profile reconciles the patch layer by itself, so a release changes nothing for a user who already has it except the version. Bump `PLUGIN_VERSION` in `lib/index.js` together with the package version — it stamps every cost-log record, which is how a ledger entry can be traced back to the release that wrote it. After editing any README, re-record the hashes in `README.i18n.yaml`: a test fails until the three languages agree again.
 
 ## Tests
