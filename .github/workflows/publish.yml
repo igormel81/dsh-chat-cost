@@ -32,6 +32,10 @@ on:
           - direct
           - stage
         default: direct
+      deprecate:
+        description: Version range to deprecate after this run (e.g. 0.5.0); empty to skip
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -102,3 +106,14 @@ jobs:
       - name: Stage for approval
         if: inputs.dry_run == false && inputs.mode == 'stage'
         run: npm stage publish --tag "${{ inputs.dist_tag }}"
+
+      # A bad release should not stay installable by accident. Deprecation is a
+      # packument write rather than a publish, so it may need a token even where
+      # trusted publishing is configured; a failure here is reported, not fatal
+      # to the release that already went out.
+      - name: Deprecate an earlier version
+        if: inputs.deprecate != ''
+        continue-on-error: true
+        run: |
+          npm deprecate "dsh-chat-cost@${{ inputs.deprecate }}" \
+            "fails to load at host boot; upgrade to 0.5.1 or later"
