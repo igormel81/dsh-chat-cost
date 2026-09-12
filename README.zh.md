@@ -32,7 +32,7 @@
 - **多供应商价格。** 内置 [models.dev](https://models.dev) 目录快照，覆盖七个供应商——DeepSeek、Moonshot、OpenAI、Anthropic、Google、xAI、Mistral——及其全部有价模型（当前 139 个）。
 - **诚实的计算。** DeepSeek 使用其官方价格表并区分峰谷时段；缓存写入在有独立价格的供应商（Anthropic、OpenAI）按缓存写入价计费，否则按输入价计费；没有价格的模型显示 `—`，绝不编造数字。
 - **按对话、子代理、会话树分级。** 悬停提示会分开显示本对话与其子代理，并给出会话树合计、token 明细与涉及的模型。
-- **项目目录中的费用日志。** `<project>/.dsh-cost/cost.jsonl`，每个会话每次落盘一行 JSON，包含会话树位置、四项 token 统计、累计与增量费用以及价格来源。首次写入时会把 `.dsh-cost/` 加入项目的 `.gitignore`。
+- **项目目录中的费用日志。** `<project>/.dsh-cost/cost.jsonl`，每个会话每次落盘一行 JSON，包含会话树位置、四项 token 统计、累计与增量费用以及价格来源。在 git 工作树中，首次写入时会把 `.dsh-cost/` 加入项目的 `.gitignore`；普通目录不做任何改动——日志可以写入，但不留下多余文件。
 - **三种语言。** 英语、中文、俄语，依次按插件配置、harness 语言设置、浏览器语言选择。
 
 ## 安装

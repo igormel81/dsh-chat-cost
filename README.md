@@ -32,7 +32,7 @@ Known limits, stated rather than hidden: only live sessions expose provider usag
 - **Multi-provider prices.** A bundled snapshot of the [models.dev](https://models.dev) catalog covers seven providers — DeepSeek, Moonshot, OpenAI, Anthropic, Google, xAI, Mistral — and every priced model of each (139 models today).
 - **Honest arithmetic.** DeepSeek is priced from its own published table including peak and off-peak tiers; cache writes bill at each provider's own cache-write price where one exists (Anthropic, OpenAI) and at the input price otherwise; a model with no price shows `—` rather than an invented number.
 - **Breakdown by chat, subagents and session tree.** The hover tooltip separates this chat from its subagents and shows the tree total, the token buckets and the models involved.
-- **Cost log in the project folder.** `<project>/.dsh-cost/cost.jsonl`, one JSON object per session per flush, with the tree position, four token buckets, cumulative and delta cost, and the pricing source. `.dsh-cost/` is added to the project `.gitignore` on first write.
+- **Cost log in the project folder.** `<project>/.dsh-cost/cost.jsonl`, one JSON object per session per flush, with the tree position, four token buckets, cumulative and delta cost, and the pricing source. Inside a git work tree, `.dsh-cost/` is added to the project `.gitignore` on first write; a plain folder is left untouched — the log is welcome there, clutter is not.
 - **Three languages.** English, Chinese and Russian, chosen from the plugin config, then the harness locale, then the browser language.
 
 ## Install

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, readFile, writeFile, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { appendCostLog, costRecord, ensureGitignore, LOG_DIR, LOG_FILE } from '../lib/log.js'
+import { appendCostLog, costRecord, ensureGitignore, isGitWorkTree, LOG_DIR, LOG_FILE } from '../lib/log.js'
 
 test('the log is appended as JSONL and never rewritten', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'dsh-cost-'))
@@ -22,6 +22,7 @@ test('the log is appended as JSONL and never rewritten', async () => {
 
 test('a project .gitignore gains the log directory once', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'dsh-cost-'))
+  await mkdir(join(dir, '.git'), { recursive: true })
   await writeFile(join(dir, '.gitignore'), 'node_modules\n', 'utf8')
   await ensureGitignore(dir)
   await ensureGitignore(dir)
@@ -29,8 +30,23 @@ test('a project .gitignore gains the log directory once', async () => {
   assert.equal(text, 'node_modules\n.dsh-cost/\n')
 
   const empty = await mkdtemp(join(tmpdir(), 'dsh-cost-'))
+  await mkdir(join(empty, '.git'), { recursive: true })
   await ensureGitignore(empty)
   assert.equal(await readFile(join(empty, '.gitignore'), 'utf8'), '.dsh-cost/\n')
+})
+
+test('a plain folder is left alone instead of receiving a stray .gitignore', async () => {
+  const plain = await mkdtemp(join(tmpdir(), 'dsh-cost-'))
+  assert.equal(await isGitWorkTree(plain), false)
+  assert.equal(await ensureGitignore(plain), null)
+  await assert.rejects(() => readFile(join(plain, '.gitignore'), 'utf8'))
+
+  // A worktree or submodule marks `.git` as a FILE, and must still be recognised.
+  const worktree = await mkdtemp(join(tmpdir(), 'dsh-cost-'))
+  await writeFile(join(worktree, '.git'), 'gitdir: /elsewhere/.git/worktrees/x\n', 'utf8')
+  assert.equal(await isGitWorkTree(worktree), true)
+  await ensureGitignore(worktree)
+  assert.equal(await readFile(join(worktree, '.gitignore'), 'utf8'), '.dsh-cost/\n')
 })
 
 test('appending without records or without a directory fails loudly', async () => {

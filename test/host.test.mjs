@@ -5,7 +5,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { __buildSummary, __collectTree, __config, __modelOf, __rootOf } from '../lib/index.js'
@@ -35,6 +35,7 @@ const settings = __config({})
 
 test('a live chat plus a live subagent are priced into one tree and logged', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
+  await mkdir(join(project, '.git'), { recursive: true })
   const root = session({ id: 'root', cwd: project, usage: { uncachedInputTokens: 1000000, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 } })
   const child = session({ id: 'child', parent: 'root', provider: 'moonshot', model: 'kimi-k3', usage: { outputTokens: 1000 } })
   const ctx = context({ sessions: [root, child] })
@@ -67,7 +68,7 @@ test('a live chat plus a live subagent are priced into one tree and logged', asy
   assert.equal(childRecord.parentSessionId, 'root')
   assert.equal(childRecord.model, 'kimi-k3')
   assert.equal(childRecord.pricingSource, 'catalog')
-  assert.equal(childRecord.plugin, 'dsh-chat-cost@0.4.1')
+  assert.equal(childRecord.plugin, 'dsh-chat-cost@0.4.2')
   assert.equal(await readFile(join(project, '.gitignore'), 'utf8'), '.dsh-cost/\n')
 })
 
@@ -140,6 +141,7 @@ test('unknown sessions and a missing store fail with named reasons', async () =>
 
 test('a custom log directory is respected', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
+  await mkdir(join(project, '.git'), { recursive: true })
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 100 } })
   const summary = await __buildSummary(context({ sessions: [root] }), __config({ logDir: '.cost' }), { flushed: new Map() }, 'root')
   assert.equal(summary.logPath, join(project, '.cost', 'cost.jsonl'))
