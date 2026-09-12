@@ -12,7 +12,7 @@ English | [中文](README.zh.md) | [Русский](README.ru.md)
 
 ## Status
 
-Complete: the price catalog, the pricing engine (peak tiers, cache read and cache write rules), the Host half that walks the session tree, prices every session and appends the JSONL cost log, and the client readout in English, Chinese and Russian.
+Complete: the price catalog, the pricing engine (peak tiers, cache read and cache write rules), the Host half that walks the session tree, prices every session and appends the JSONL cost log, the budget-planning tools (`cost_price`, `cost_history`, `cost_estimate`, `cost_plan`, `cost_mark`), and the client readout in English, Chinese and Russian.
 
 Known limits, stated rather than hidden: only live sessions expose provider usage, so a persisted-only subagent session is listed without a price; long-context tier prices published for some Gemini and Grok models are not applied yet.
 
@@ -67,6 +67,27 @@ npm test
 ```
 
 Covers the pricing engine (route mapping, id canonicalization, peak windows, cache rules, unknown models), the log records and file writes against real files in a temporary directory, and the shipped client bundle loaded with a stubbed module loader — asserting that all three languages define the same keys, that every message renders with its arguments, and that language resolution follows config → harness locale → browser.
+
+## Budget planning
+
+The plugin turns the cost log into a constraint: the model plans the work, the plugin prices it, packs it under a money limit and records what actually happened.
+
+| Tool | Purpose |
+| --- | --- |
+| `cost_price` | prices and cache rates for a provider or model, so a route is chosen deliberately |
+| `cost_history` | actual spend per marked unit and per model, with P50/P90 spread — the calibration source |
+| `cost_estimate` | prices a list of units, packs them under a budget, and reports what would not fit |
+| `cost_plan` | writes or reads `<project>/.dsh-cost/plan.json` (plus a generated `plan.md`), and sets the money budget |
+| `cost_mark` | opens a plan unit, so later spend is attributed to the plan instead of guessed from timestamps |
+
+```
+cost_plan   {action: write, budgetUsd: 20, units: [...]}   -> plan.json + plan.md, 20% held back for rework
+cost_mark   {label: research}                              -> spend from here belongs to `research`
+cost_history {}                                            -> research: $1.84 actual against $2.10 expected
+cost_plan   {action: budget, budgetUsd: 25}                -> the widget then shows "≈ $0.42 / $25.00"
+```
+
+Two rules make the estimates usable rather than decorative. Estimates are **ranges**: a unit priced from declared tokens is exact, anything else carries a P50 and a P90 (twice the expected work by default, and the tool says whether the number came from `declared` tokens, from `history`, or from a `bootstrap` default). And a budget keeps a **20% reserve** for rework, because a plan without a buffer is a lie. A model with no price resolves to `—`; nothing is invented.
 
 ## Limitations
 

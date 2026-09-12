@@ -67,7 +67,7 @@ test('a live chat plus a live subagent are priced into one tree and logged', asy
   assert.equal(childRecord.parentSessionId, 'root')
   assert.equal(childRecord.model, 'kimi-k3')
   assert.equal(childRecord.pricingSource, 'catalog')
-  assert.equal(childRecord.plugin, 'dsh-chat-cost@0.2.0')
+  assert.equal(childRecord.plugin, 'dsh-chat-cost@0.3.0')
   assert.equal(await readFile(join(project, '.gitignore'), 'utf8'), '.dsh-cost/\n')
 })
 
