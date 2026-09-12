@@ -13,9 +13,9 @@ English | [中文](README.zh.md) | [Русский](README.ru.md)
 
 ## Status
 
-Complete: the price catalog, the pricing engine (peak tiers, cache read and cache write rules), the Host half that walks the session tree, prices every session and appends the JSONL cost log, the budget-planning tools (`cost_price`, `cost_history`, `cost_estimate`, `cost_plan`, `cost_mark`), and the client readout in English, Chinese and Russian.
+Working end to end, and verified against a running host rather than only in tests: the bundled seven-provider catalog, the pricing engine (peak tiers, cache read and write rules), the Host half that walks the session tree, prices every session per interval and appends the JSONL cost log, per-turn pricing folded from the session's own events, the six budget tools (`cost_price`, `cost_history`, `cost_estimate`, `cost_plan`, `cost_mark`, `cost_scenarios`), and the client readout in English, Chinese and Russian — in the composer for the chat, and under every finished answer for that answer.
 
-Known limits, stated rather than hidden: only live sessions expose provider usage, so a persisted-only subagent session is listed without a price; long-context tier prices published for some Gemini and Grok models are not applied yet.
+Known limits, stated rather than hidden: only live sessions expose provider usage, so a persisted-only subagent session is listed without a price; a chat known only from the log has no turn boundaries, so it shows a total and no per-answer badges; long-context tier prices published for some Gemini and Grok models are not applied yet.
 
 ## Configuration
 
@@ -60,7 +60,7 @@ The package is a DSH bundle: the profile reconciles its patch layer automaticall
 | Unknown model | resolves to no price; the readout says `—` and the tooltip names the model |
 | Attribution | the log is the base: a recorded interval keeps the price it was billed at, only new tokens are priced |
 
-Refresh the snapshot with `npm run prices` (the seven curated providers) or `npm run prices:all` (every provider in the catalog).
+`data/prices.json` records where it came from (`source`) and when it was taken (`generatedAt`), so the age of a price is checkable rather than assumed. Refresh it with `npm run prices` (the seven curated providers) or `npm run prices:all` (every provider in the catalog).
 
 ### How the number is computed
 
@@ -69,8 +69,25 @@ The summary is built ledger-first: recorded deltas are summed from the log file,
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.0","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.1","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
+
+## What it writes
+
+Everything lives in the project folder, next to the work it describes.
+
+| Path | Written by | What it holds |
+| --- | --- | --- |
+| `<project>/.dsh-cost/cost.jsonl` | every flush | one JSON object per session per interval: tree position, four token buckets, delta and cumulative cost, and the tariff it was billed at |
+| `<project>/.dsh-cost/plan.json` | `cost_plan`, `cost_scenarios` | the priced work plan: units, chosen routes, what did not fit, the routing comparison |
+| `<project>/.dsh-cost/budget.json` | `cost_plan {action: budget}` | the money limit and its note |
+| `<project>/.dsh-cost/plan.md` | `cost_plan` | the same plan as a document for a human, in the language the readout reports |
+
+The log is append-only: a record is never rewritten, which is what makes interval pricing possible. Remove the folder and the plugin starts from nothing — it keeps no state anywhere else.
+
+## Privacy
+
+No account, no telemetry, no server. At runtime the plugin makes no outbound request at all: prices come from the bundled snapshot, the widget asks only the local host route, and the log is written into your own project folder. The one command that touches the network is `npm run prices`, which rebuilds the catalog from models.dev and is meant for a maintainer before a release, not for a user.
 
 ## Releasing
 
@@ -132,12 +149,33 @@ Plan and budget files are read-modify-write, so every mutation goes through one 
 
 The recommendation names the cost drivers, ranks what switching would save per unit, and lists the three cheapest adequate alternatives with their context size and release date. Adequacy uses catalog facts — reasoning, tool calling, vision, context and output limits — and never a quality score, because the catalog has none. Free tiers are skipped unless asked for, and a cheaper model whose context is much smaller than your preferred route is flagged as narrower rather than quietly recommended.
 
+## Uninstall and recovery
+
+```sh
+dsh plugin --profile web remove dsh-chat-cost
+```
+
+Restart the host afterwards. Removing the row stops all of it — the readout, the badges under answers, the tools, the log writes. What is already written (the cost log, the plan, the budget) is yours and stays where it is.
+
+If a plugin keeps the host from starting, the boot names it (`plugin tree failed to load: …`), and the fix is the same command with `remove`: the composition is assembled at load, so a plugin cannot be unloaded from a host that is already broken.
+
+## Compatibility
+
+| Needs | Why |
+| --- | --- |
+| A DSH profile | the package is a bundle: `dsh.bundle.patch` points at `cordis.patch.yml`, and the profile reconciles it into `dsh.profile.bundles` |
+| Node ≥ 20 | declared in `engines`; the plugin uses ESM and `AbortSignal.timeout` |
+| The loader contract `apply(ctx, config)` | settings arrive as the second argument; reading them from `ctx` throws in this Cordis, and doing so once took the host down at boot |
+| The web shell slots `conversation.composer.dock` and `conversation.chat.turnTail` | the composer readout and the per-answer badges; without them the Host half still prices, logs and answers its route |
+| npm CLI ≥ 11.5.1 | only to release this package through npm trusted publishing, not to use it |
+
 ## Limitations
 
 - Reasoning tokens are billed as output by the providers and are counted as output here.
 - Long-context tier prices published for some Gemini and Grok models are not applied yet; the base tier is used.
 - A chat that the log has never seen and that is not open shows `—`: the plugin prices what it can prove (the live session, or the log) and says so rather than estimating from a projection it cannot read.
 - The live readout counts only the tail of the log (`ledgerTailBytes`, 2 MiB by default); older spend stays in the file and the summary reports the truncation.
+- Per-answer badges exist for turns the Host can price. A chat taken from the log has a total and no turn boundaries, so it shows no badges rather than invented ones.
 - The write queue serializes the plugin's own writes. A human editing `plan.json` at the moment the model writes it can still lose that edit; the file is small and meant to be reviewed, not co-edited.
 
 ## License

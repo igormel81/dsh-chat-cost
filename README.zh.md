@@ -13,9 +13,9 @@
 
 ## 状态
 
-已完成：价格目录、计价引擎（峰谷时段、缓存读取与写入规则）、遍历会话树并为每个会话计价、写入 JSONL 费用日志的宿主端、预算规划工具（`cost_price`、`cost_history`、`cost_estimate`、`cost_plan`、`cost_mark`），以及英语、中文、俄语的客户端读数。
+端到端可用，并且是在真实宿主上验证过的，而不只是测试里：内置的七家供应商目录、计价引擎（峰谷时段、缓存读取与写入规则）、遍历会话树并按区间为每个会话计价并写入 JSONL 费用日志的宿主端、从会话自身事件折算的按轮计价、六个预算工具（`cost_price`、`cost_history`、`cost_estimate`、`cost_plan`、`cost_mark`、`cost_scenarios`），以及英语、中文、俄语的客户端读数——输入区显示整个对话，每个完成的回答下面显示该回答自身的费用。
 
-已知限制（明示而非隐藏）：只有活动会话会暴露供应商用量，因此仅存在于持久化存储中的子代理会话会被列出但没有价格；部分 Gemini 与 Grok 模型公布的长上下文档位价格尚未应用。
+已知限制（明示而非隐藏）：只有活动会话会暴露供应商用量，因此仅存在于持久化存储中的子代理会话会被列出但没有价格；仅从日志得知的对话没有轮次边界，因此它显示总额而不显示每个回答的费用；部分 Gemini 与 Grok 模型公布的长上下文档位价格尚未应用。
 
 ## 配置
 
@@ -60,7 +60,7 @@ dsh plugin --profile web add dsh-chat-cost
 | 未知模型 | 解析为无价格；读数显示 `—`，提示中会列出该模型 |
 | 归属 | 以日志为准：已记录区间保留当时价格，只对新增 token 计费 |
 
-使用 `npm run prices`（七个精选供应商）或 `npm run prices:all`（目录中的全部供应商）刷新快照。
+`data/prices.json` 记录了快照的来源（`source`）与生成时间（`generatedAt`），因此价格的新旧可以被核查，而不是靠猜。刷新方式：`npm run prices`（七个精选供应商）或 `npm run prices:all`（目录中的全部供应商）。
 
 ### 数字如何得出
 
@@ -69,8 +69,25 @@ dsh plugin --profile web add dsh-chat-cost
 ## 费用日志格式
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.0","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.1","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
+
+## 写入了什么
+
+一切都放在项目目录里，与被描述的工作放在一起。
+
+| 路径 | 由谁写入 | 内容 |
+| --- | --- | --- |
+| `<project>/.dsh-cost/cost.jsonl` | 每次落盘 | 每个会话每个区间一条 JSON：会话树位置、四项 token 统计、增量与累计费用，以及当时的费率 |
+| `<project>/.dsh-cost/plan.json` | `cost_plan`、`cost_scenarios` | 已计价的工作计划：单元、选定的路由、放不下的部分、路由比较 |
+| `<project>/.dsh-cost/budget.json` | `cost_plan {action: budget}` | 金额上限与备注 |
+| `<project>/.dsh-cost/plan.md` | `cost_plan` | 同一份计划的人类可读文档，使用读数控件所报告的语言 |
+
+日志是只追加的：记录从不被改写——这正是按区间计价得以成立的原因。删除该目录，插件就从零开始：它在别处不保存任何状态。
+
+## 隐私
+
+没有账号、没有遥测、没有服务器。运行时插件完全不发出站请求：价格来自内置快照，控件只访问本机宿主的接口，日志写入你自己的项目目录。唯一联网的命令是 `npm run prices`，它从 models.dev 重建目录，面向维护者在发布前运行，而不是给用户使用。
 
 ## 发布流程
 
@@ -132,12 +149,33 @@ cost_plan   {action: budget, budgetUsd: 25}                -> 组件随即显示
 
 随后给出的建议会指出主要成本来源、按单元排序切换可节省的金额，并列出三个最便宜的合格替代模型及其上下文大小与发布时间。合格性依据目录事实——推理、工具调用、视觉、上下文与输出上限——而不是质量评分，因为目录里没有评分。免费额度默认跳过，上下文明显小于首选路由的便宜模型会被标记为更窄，而不会悄悄推荐。
 
+## 卸载与恢复
+
+```sh
+dsh plugin --profile web remove dsh-chat-cost
+```
+
+之后重启宿主。移除该行会停掉全部功能：输入区读数、回答下方的费用、工具、日志写入。已经写入的内容（费用日志、计划、预算）属于你，原地保留。
+
+如果某个插件导致宿主无法启动，启动日志会点名它（`plugin tree failed to load: …`），处理办法就是同一条命令加 `remove`：组合是在加载时装配的，因此已经损坏的宿主无法卸载插件。
+
+## 兼容性
+
+| 需要 | 原因 |
+| --- | --- |
+| 一个 DSH profile | 本包是 bundle：`dsh.bundle.patch` 指向 `cordis.patch.yml`，profile 会自动把它并入 `dsh.profile.bundles` |
+| Node ≥ 20 | 在 `engines` 中声明；插件使用 ESM 与 `AbortSignal.timeout` |
+| 加载器契约 `apply(ctx, config)` | 配置作为第二个参数传入；在这个 Cordis 中从 `ctx` 读取会抛错，曾经因此让宿主在启动时崩溃 |
+| Web 外壳的插槽 `conversation.composer.dock` 与 `conversation.chat.turnTail` | 输入区读数与回答下方的费用；没有它们时宿主端仍会计价、写日志并响应自己的接口 |
+| npm CLI ≥ 11.5.1 | 仅用于通过 npm 可信发布来发布本包，而不是使用它 |
+
 ## 限制
 
 - 推理 token 由供应商按输出计费，此处同样计入输出。
 - 部分 Gemini 与 Grok 模型公布的长上下文档位价格尚未应用，当前使用基础档价格。
 - 日志中从未出现且未打开的对话显示 `—`：插件只计入可证实的部分（活动会话或日志），并明确说明，而不是根据它读不到的投影去估算。
 - 实时读数只统计日志尾部（`ledgerTailBytes`，默认 2 MiB）；更早的费用仍留在文件中，汇总会说明截断情况。
+- 回答下方的费用只针对宿主能够计价的轮次。仅从日志取数的对话有总额但没有轮次边界，因此不显示这些费用，而不是编造。
 - 队列只串行化插件自身的写入。人在模型写入时手工编辑 `plan.json` 仍可能丢失该次编辑；该文件很小，用于查看而非并行编辑。
 
 ## 许可证

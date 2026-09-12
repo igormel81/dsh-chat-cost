@@ -13,3 +13,4 @@
         writeLog: true      # append the JSONL cost log into the project folder
         logDir: .dsh-cost    # directory name inside the project folder
         # language: en      # en | zh | ru; omit to follow the harness locale, then the browser
+        # ledgerTailBytes: 2097152  # bytes of the log read back per summary (2 MiB)
