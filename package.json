@@ -1,7 +1,7 @@
 {
   "name": "dsh-chat-cost",
-  "version": "0.3.0",
-  "description": "DeepSeek Harness (dsh) plugin: live token cost of every chat, its subagents and the whole session tree, plus budget planning — price any model, pack a work plan under a money limit, mark plan units and log actual spend per unit to a JSONL cost log in your project folder.",
+  "version": "0.4.0",
+  "description": "DeepSeek Harness (dsh) plugin: live token cost of every chat, its subagents and the whole session tree, budget planning that packs a work plan under a money limit, and scenario comparison that names which models are worth connecting — DeepSeek, OpenAI, Anthropic, Gemini, Kimi, Grok and Mistral prices from a bundled catalog, plus a JSONL cost log in your project folder.",
   "keywords": [
     "anthropic",
     "budget",
@@ -28,6 +28,8 @@
     "llm-pricing",
     "local-first",
     "mistral",
+    "model-routing",
+    "model-selection",
     "moonshot",
     "observability",
     "openai",
@@ -35,6 +37,8 @@
     "plan-vs-actual",
     "price",
     "pricing",
+    "provider-comparison",
+    "scenario-planning",
     "session-tree",
     "spend",
     "spend-control",

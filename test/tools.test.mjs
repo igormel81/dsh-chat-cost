@@ -28,7 +28,7 @@ async function harness() {
 
 test('every tool declares a model-facing schema and an output contract', async () => {
   const { tools } = await harness()
-  assert.deepEqual(tools.map((tool) => tool.name).sort(), ['cost_estimate', 'cost_history', 'cost_mark', 'cost_plan', 'cost_price'])
+  assert.deepEqual(tools.map((tool) => tool.name).sort(), ['cost_estimate', 'cost_history', 'cost_mark', 'cost_plan', 'cost_price', 'cost_scenarios'])
   for (const tool of tools) {
     assert.ok(tool.description.length > 40, `${tool.name} explains itself`)
     assert.equal(typeof tool.execute, 'function')
@@ -161,4 +161,115 @@ test('without a project directory the tools refuse instead of writing somewhere 
   assert.deepEqual(await history.execute({}, exec), { ok: false, reason: 'no-project-directory' })
   const mark = tools.find((tool) => tool.name === 'cost_mark')
   assert.deepEqual(await mark.execute({ label: 'x' }, exec), { ok: false, reason: 'no-project-directory' })
+})
+
+test('scenarios compare routings and name the models worth connecting', async () => {
+  const { project, call } = await harness()
+  await call('cost_plan', {
+    action: 'write',
+    goal: 'beta',
+    budgetUsd: 25,
+    units: [
+      { label: 'collect', priority: 1, scenario: 'normal', routes: [{ provider: 'moonshot', model: 'kimi-k3' }] },
+      { label: 'synthesis', priority: 3, critical: true, scenario: 'deep', routes: [{ provider: 'moonshot', model: 'kimi-k3' }] }
+    ]
+  })
+
+  const result = await call('cost_scenarios', {})
+  assert.equal(result.ok, true)
+  assert.deepEqual(result.scenarios.map((scenario) => scenario.name), ['quality', 'connected', 'economy', 'balanced'])
+
+  const quality = result.scenarios.find((scenario) => scenario.name === 'quality')
+  const economy = result.scenarios.find((scenario) => scenario.name === 'economy')
+  const balanced = result.scenarios.find((scenario) => scenario.name === 'balanced')
+  assert.equal(quality.units.every((unit) => unit.route.model === 'kimi-k3'), true)
+  assert.ok(economy.totals.p50Usd < quality.totals.p50Usd, 'the cheapest adequate routing is cheaper')
+  assert.equal(balanced.units.find((unit) => unit.label === 'synthesis').route.model, 'kimi-k3', 'a critical unit keeps its preferred route')
+  assert.ok(balanced.totals.p50Usd > economy.totals.p50Usd, 'and that costs more than pure economy')
+
+  const recommendation = result.recommendation
+  assert.ok(recommendation.savingsUsd > 0)
+  assert.equal(recommendation.drivers[0].label, 'synthesis', 'the cost driver is ranked first')
+  assert.ok(recommendation.drivers[0].share > 0.5)
+  assert.ok(recommendation.opportunities.length >= 1)
+
+  // The comparison is saved with the plan and rendered for a human reader.
+  const json = JSON.parse(await readFile(join(project, '.dsh-cost', 'plan.json'), 'utf8'))
+  assert.equal(json.scenarios.length, 4)
+  assert.equal(typeof json.recommendation.savingsUsd, 'number')
+  const markdown = await readFile(join(project, '.dsh-cost', 'plan.md'), 'utf8')
+  assert.match(markdown, /## Scenarios/)
+  assert.match(markdown, /\| Scenario \| Expected \| Worst case \| Fits budget \| Providers \|/)
+  assert.match(markdown, /not a quality measurement/)
+})
+
+test('free-tier models are skipped unless they are asked for', async () => {
+  const { call } = await harness()
+  const units = [{ label: 'x', scenario: 'lean', needs: { tools: true }, routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] }]
+
+  const without = await call('cost_scenarios', { units })
+  const withFree = await call('cost_scenarios', { units, includeFree: true })
+
+  assert.ok(without.units[0].freeSkipped >= 1, 'free-tier candidates exist in the catalog')
+  assert.ok(without.units[0].cheapestAdequate.usd > 0, 'and are excluded from the paid floor')
+  const note = without.scenarios.find((scenario) => scenario.name === 'economy').notes.find((entry) => entry.kind === 'free-models-skipped')
+  assert.ok(note !== undefined, 'the exclusion is stated, not silent')
+  assert.match(note.detail, /includeFree/)
+
+  assert.equal(withFree.units[0].freeSkipped, 0)
+  assert.ok(withFree.units[0].cheapestAdequate.usd <= without.units[0].cheapestAdequate.usd, 'pricing free tiers can only lower the floor')
+})
+
+test('a cheaper adequate model that is much narrower is flagged, not hidden', async () => {
+  const { call } = await harness()
+  const result = await call('cost_scenarios', {
+    units: [{
+      label: 'long-read',
+      scenario: 'normal',
+      needs: { tools: true, context: 100000 },
+      routes: [{ provider: 'anthropic', model: 'claude-opus-5' }]
+    }]
+  })
+  const cheapest = result.units[0].cheapestAdequate
+  assert.ok(cheapest !== null)
+  assert.ok(cheapest.usd < 1, 'the cheap option is genuinely cheaper than Opus')
+  const flagged = result.units[0].alternatives.some((alternative) => alternative.narrower === true)
+  assert.equal(flagged, true, 'a smaller context than the preferred route is visible in the comparison')
+  const note = result.scenarios.find((scenario) => scenario.name === 'economy').notes.find((entry) => entry.kind === 'narrower-context')
+  assert.ok(note !== undefined)
+})
+
+test('a unit with no requirements gets no catalog-wide recommendation, and says why', async () => {
+  const { call } = await harness()
+  const result = await call('cost_scenarios', {
+    units: [{ label: 'mystery', routes: [{ provider: 'not-a-provider', model: 'not-a-model' }], scenario: 'lean' }]
+  })
+  assert.equal(result.units[0].knowsRequirements, false)
+  assert.equal(result.units[0].candidates, 0)
+  assert.equal(result.units[0].cheapestAdequate, null)
+  const note = result.scenarios.find((scenario) => scenario.name === 'economy').notes.find((entry) => entry.kind === 'no-requirements')
+  assert.ok(note !== undefined, 'the silence is explained rather than hidden')
+})
+
+test('an adequate route names a harness route, not only a catalog key', async () => {
+  const { call } = await harness()
+  const result = await call('cost_scenarios', {
+    units: [{ label: 'code', scenario: 'lean', needs: { tools: true, context: 100000 }, routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] }]
+  })
+  const alternatives = result.units[0].alternatives
+  assert.ok(alternatives.length > 0)
+  for (const alternative of alternatives) {
+    assert.equal(typeof alternative.route, 'string')
+    assert.equal(alternative.route, alternative.route.toLowerCase())
+  }
+  const known = ['deepseek-official', 'moonshot', 'openai', 'anthropic', 'google', 'xai', 'mistral']
+  assert.ok(known.includes(result.units[0].cheapestAdequate.route), `unexpected route ${result.units[0].cheapestAdequate.route}`)
+})
+
+test('scenarios refuse without units and say what to do', async () => {
+  const { call } = await harness()
+  const result = await call('cost_scenarios', {})
+  assert.equal(result.ok, false)
+  assert.equal(result.reason, 'no-units')
+  assert.match(result.hint, /cost_plan/)
 })

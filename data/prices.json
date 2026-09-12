@@ -1,6 +1,6 @@
 {
  "source": "https://models.dev/api.json",
- "generatedAt": "2026-09-12T18:05:04.367Z",
+ "generatedAt": "2026-09-12T18:25:19.297Z",
  "curated": [
   "deepseek",
   "moonshotai",
@@ -21,6 +21,16 @@
       "output": 15,
       "cacheRead": 0.3,
       "cacheWrite": 3.75
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 128000,
+      "family": "claude-sonnet",
+      "released": "2026-02-17"
      }
     },
     "claude-opus-5": {
@@ -30,6 +40,16 @@
       "output": 25,
       "cacheRead": 0.5,
       "cacheWrite": 6.25
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 128000,
+      "family": "claude-opus",
+      "released": "2026-07-24"
      }
     },
     "claude-opus-4-5": {
@@ -39,6 +59,16 @@
       "output": 25,
       "cacheRead": 0.5,
       "cacheWrite": 6.25
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 64000,
+      "family": "claude-opus",
+      "released": "2025-11-24"
      }
     },
     "claude-fable-5-1": {
@@ -48,6 +78,16 @@
       "output": 50,
       "cacheRead": 0.25,
       "cacheWrite": 12.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 128000,
+      "family": "claude-fable",
+      "released": "2026-09-01"
      }
     },
     "claude-opus-4-6": {
@@ -57,6 +97,16 @@
       "output": 25,
       "cacheRead": 0.5,
       "cacheWrite": 6.25
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 128000,
+      "family": "claude-opus",
+      "released": "2026-02-04"
      }
     },
     "claude-sonnet-4-5-20250929": {
@@ -66,6 +116,16 @@
       "output": 15,
       "cacheRead": 0.3,
       "cacheWrite": 3.75
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 64000,
+      "family": "claude-sonnet",
+      "released": "2025-09-29"
      }
     },
     "claude-opus-4-7": {
@@ -75,6 +135,16 @@
       "output": 25,
       "cacheRead": 0.5,
       "cacheWrite": 6.25
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 128000,
+      "family": "claude-opus",
+      "released": "2026-04-14"
      }
     },
     "claude-haiku-4-5-20251001": {
@@ -84,6 +154,16 @@
       "output": 5,
       "cacheRead": 0.1,
       "cacheWrite": 1.25
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 64000,
+      "family": "claude-haiku",
+      "released": "2025-10-15"
      }
     },
     "claude-fable-5": {
@@ -93,6 +173,16 @@
       "output": 50,
       "cacheRead": 1,
       "cacheWrite": 12.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 128000,
+      "family": "claude-fable",
+      "released": "2026-06-07"
      }
     },
     "claude-haiku-4-5": {
@@ -102,6 +192,16 @@
       "output": 5,
       "cacheRead": 0.1,
       "cacheWrite": 1.25
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 64000,
+      "family": "claude-haiku",
+      "released": "2025-10-15"
      }
     },
     "claude-sonnet-4-5": {
@@ -111,6 +211,16 @@
       "output": 15,
       "cacheRead": 0.3,
       "cacheWrite": 3.75
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 64000,
+      "family": "claude-sonnet",
+      "released": "2025-09-29"
      }
     },
     "claude-opus-4-8": {
@@ -120,6 +230,16 @@
       "output": 25,
       "cacheRead": 0.5,
       "cacheWrite": 6.25
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 128000,
+      "family": "claude-opus",
+      "released": "2026-05-28"
      }
     },
     "claude-sonnet-5": {
@@ -129,6 +249,16 @@
       "output": 10,
       "cacheRead": 0.2,
       "cacheWrite": 2.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 128000,
+      "family": "claude-sonnet",
+      "released": "2026-06-29"
      }
     },
     "claude-opus-4-5-20251101": {
@@ -138,6 +268,16 @@
       "output": 25,
       "cacheRead": 0.5,
       "cacheWrite": 6.25
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 64000,
+      "family": "claude-opus",
+      "released": "2025-11-24"
      }
     }
    }
@@ -160,6 +300,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-pro",
+      "released": "2026-02-19"
      }
     },
     "gemini-3.1-flash-lite-image": {
@@ -167,6 +317,15 @@
      "cost": {
       "input": 0.25,
       "output": 30
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "context": 65536,
+      "output": 65536,
+      "family": "gemini-flash-lite",
+      "released": "2026-06-30"
      }
     },
     "lyria-3-clip-preview": {
@@ -174,6 +333,13 @@
      "cost": {
       "input": 0,
       "output": 0
+     },
+     "caps": {
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "lyria",
+      "released": "2026-03-25"
      }
     },
     "gemini-2.5-flash-image": {
@@ -182,6 +348,14 @@
       "input": 0.3,
       "output": 30,
       "cacheRead": 0.075
+     },
+     "caps": {
+      "reasoning": true,
+      "vision": true,
+      "context": 32768,
+      "output": 32768,
+      "family": "gemini-flash",
+      "released": "2025-08-26"
      }
     },
     "deep-research-max-preview-04-2026": {
@@ -199,6 +373,15 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "context": 131072,
+      "output": 65536,
+      "family": "gemini-pro",
+      "released": "2026-04-21"
      }
     },
     "gemini-3-pro-image": {
@@ -206,6 +389,14 @@
      "cost": {
       "input": 2,
       "output": 120
+     },
+     "caps": {
+      "reasoning": true,
+      "vision": true,
+      "context": 131072,
+      "output": 32768,
+      "family": "gemini-pro",
+      "released": "2026-05-28"
      }
     },
     "gemini-3.1-pro-preview": {
@@ -223,6 +414,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-pro",
+      "released": "2026-02-19"
      }
     },
     "deep-research-preview-04-2026": {
@@ -240,6 +441,15 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "context": 131072,
+      "output": 65536,
+      "family": "gemini-pro",
+      "released": "2026-04-21"
      }
     },
     "gemini-2.5-flash-lite": {
@@ -248,6 +458,16 @@
       "input": 0.1,
       "output": 0.4,
       "cacheRead": 0.01
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash-lite",
+      "released": "2025-06-17"
      }
     },
     "gemini-2.5-computer-use-preview-10-2025": {
@@ -264,6 +484,15 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "context": 131072,
+      "output": 65536,
+      "family": "gemini-pro",
+      "released": "2025-10-07"
      }
     },
     "gemini-3.6-flash": {
@@ -272,6 +501,16 @@
       "input": 0.75,
       "output": 3.75,
       "cacheRead": 0.075
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2026-07-21"
      }
     },
     "gemini-3.1-flash-lite": {
@@ -280,6 +519,16 @@
       "input": 0.25,
       "output": 1.5,
       "cacheRead": 0.025
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash-lite",
+      "released": "2026-05-07"
      }
     },
     "gemini-3.1-flash-live-preview": {
@@ -287,6 +536,15 @@
      "cost": {
       "input": 0.75,
       "output": 4.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "context": 131072,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2026-03-26"
      }
     },
     "gemini-2.5-pro-preview-tts": {
@@ -294,6 +552,12 @@
      "cost": {
       "input": 1,
       "output": 20
+     },
+     "caps": {
+      "context": 8192,
+      "output": 16384,
+      "family": "gemini-flash",
+      "released": "2025-05-01"
      }
     },
     "gemini-3.5-flash": {
@@ -302,6 +566,16 @@
       "input": 1.5,
       "output": 9,
       "cacheRead": 0.15
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2026-05-19"
      }
     },
     "gemini-3.1-flash-lite-preview": {
@@ -310,6 +584,16 @@
       "input": 0.25,
       "output": 1.5,
       "cacheRead": 0.025
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash-lite",
+      "released": "2026-03-03"
      }
     },
     "gemini-2.5-flash-preview-tts": {
@@ -317,6 +601,12 @@
      "cost": {
       "input": 0.5,
       "output": 10
+     },
+     "caps": {
+      "context": 8192,
+      "output": 16384,
+      "family": "gemini-flash",
+      "released": "2025-05-01"
      }
     },
     "gemini-embedding-001": {
@@ -324,6 +614,12 @@
      "cost": {
       "input": 0.15,
       "output": 0
+     },
+     "caps": {
+      "context": 2048,
+      "output": 1,
+      "family": "gemini",
+      "released": "2025-05-20"
      }
     },
     "gemini-3.1-flash-image": {
@@ -331,6 +627,14 @@
      "cost": {
       "input": 0.5,
       "output": 60
+     },
+     "caps": {
+      "reasoning": true,
+      "vision": true,
+      "context": 65536,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2026-05-28"
      }
     },
     "gemini-3.5-flash-lite": {
@@ -339,6 +643,16 @@
       "input": 0.3,
       "output": 2.5,
       "cacheRead": 0.03
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash-lite",
+      "released": "2026-07-21"
      }
     },
     "gemini-3-pro-image-preview": {
@@ -346,6 +660,14 @@
      "cost": {
       "input": 2,
       "output": 120
+     },
+     "caps": {
+      "reasoning": true,
+      "vision": true,
+      "context": 131072,
+      "output": 32768,
+      "family": "gemini-pro",
+      "released": "2025-11-20"
      }
     },
     "gemini-3.1-flash-tts-preview": {
@@ -353,6 +675,13 @@
      "cost": {
       "input": 1,
       "output": 20
+     },
+     "caps": {
+      "reasoning": true,
+      "context": 8192,
+      "output": 16384,
+      "family": "gemini-flash",
+      "released": "2026-04-15"
      }
     },
     "gemini-flash-lite-latest": {
@@ -361,6 +690,16 @@
       "input": 0.3,
       "output": 2.5,
       "cacheRead": 0.03
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash-lite",
+      "released": "2026-07-21"
      }
     },
     "gemini-embedding-2": {
@@ -368,6 +707,13 @@
      "cost": {
       "input": 0.2,
       "output": 0
+     },
+     "caps": {
+      "vision": true,
+      "context": 8192,
+      "output": 1,
+      "family": "gemini",
+      "released": "2026-04-22"
      }
     },
     "gemini-3-flash-preview": {
@@ -376,6 +722,16 @@
       "input": 0.5,
       "output": 3,
       "cacheRead": 0.05
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2025-12-17"
      }
     },
     "gemini-3.8-flash": {
@@ -384,6 +740,16 @@
       "input": 0.75,
       "output": 3.75,
       "cacheRead": 0.075
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2026-09-02"
      }
     },
     "gemini-3.5-live-translate-preview": {
@@ -391,6 +757,12 @@
      "cost": {
       "input": 3.5,
       "output": 21
+     },
+     "caps": {
+      "context": 16384,
+      "output": 32768,
+      "family": "gemini-pro",
+      "released": "2026-06-09"
      }
     },
     "lyria-3-pro-preview": {
@@ -398,6 +770,13 @@
      "cost": {
       "input": 0,
       "output": 0
+     },
+     "caps": {
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "lyria",
+      "released": "2026-03-25"
      }
     },
     "gemini-3.7-flash": {
@@ -406,6 +785,16 @@
       "input": 0.75,
       "output": 3.75,
       "cacheRead": 0.075
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2026-08-13"
      }
     },
     "gemini-2.5-pro": {
@@ -423,6 +812,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-pro",
+      "released": "2025-06-17"
      }
     },
     "gemini-flash-latest": {
@@ -431,6 +830,16 @@
       "input": 0.75,
       "output": 3.75,
       "cacheRead": 0.075
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2026-08-13"
      }
     },
     "gemini-3.1-flash-image-preview": {
@@ -438,6 +847,14 @@
      "cost": {
       "input": 0.5,
       "output": 60
+     },
+     "caps": {
+      "reasoning": true,
+      "vision": true,
+      "context": 65536,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2026-02-26"
      }
     },
     "gemini-omni-flash-preview": {
@@ -445,6 +862,14 @@
      "cost": {
       "input": 1.5,
       "output": 17.5
+     },
+     "caps": {
+      "reasoning": true,
+      "vision": true,
+      "context": 131072,
+      "output": 65536,
+      "family": "gemini",
+      "released": "2026-06-30"
      }
     },
     "gemini-2.5-flash": {
@@ -453,6 +878,16 @@
       "input": 0.3,
       "output": 2.5,
       "cacheRead": 0.03
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1048576,
+      "output": 65536,
+      "family": "gemini-flash",
+      "released": "2025-06-17"
      }
     }
    }
@@ -467,6 +902,17 @@
       "output": 0.6,
       "cacheRead": 0.003,
       "reasoning": 0.6
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 1000000,
+      "output": 384000,
+      "family": "deepseek-flash",
+      "released": "2026-09-10"
      }
     },
     "deepseek-v4-flash": {
@@ -476,6 +922,17 @@
       "output": 0.6,
       "cacheRead": 0.003,
       "reasoning": 0.6
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 1000000,
+      "output": 384000,
+      "family": "deepseek-flash",
+      "released": "2026-09-10"
      }
     },
     "deepseek-v4-pro": {
@@ -485,6 +942,16 @@
       "output": 0.87,
       "cacheRead": 0.003625,
       "reasoning": 0.87
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "openWeights": true,
+      "context": 1000000,
+      "output": 384000,
+      "family": "deepseek-thinking",
+      "released": "2026-08-12"
      }
     },
     "deepseek-flash": {
@@ -494,6 +961,17 @@
       "output": 0.6,
       "cacheRead": 0.003,
       "reasoning": 0.6
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 1000000,
+      "output": 384000,
+      "family": "deepseek-flash",
+      "released": "2026-09-10"
      }
     }
    }
@@ -507,6 +985,16 @@
       "input": 0.05,
       "output": 0.4,
       "cacheRead": 0.005
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt-nano",
+      "released": "2025-08-07"
      }
     },
     "gpt-4.1-nano": {
@@ -515,6 +1003,15 @@
       "input": 0.1,
       "output": 0.4,
       "cacheRead": 0.025
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1047576,
+      "output": 32768,
+      "family": "gpt-nano",
+      "released": "2025-04-14"
      }
     },
     "gpt-4o-2024-05-13": {
@@ -522,6 +1019,15 @@
      "cost": {
       "input": 5,
       "output": 15
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 128000,
+      "output": 4096,
+      "family": "gpt",
+      "released": "2024-05-13"
      }
     },
     "gpt-5-pro": {
@@ -529,6 +1035,16 @@
      "cost": {
       "input": 15,
       "output": 120
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 272000,
+      "family": "gpt-pro",
+      "released": "2025-10-06"
      }
     },
     "gpt-5.6-sol": {
@@ -547,6 +1063,16 @@
         "cacheWrite": 10
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt-sol",
+      "released": "2026-07-09"
      }
     },
     "gpt-4o-2024-08-06": {
@@ -555,6 +1081,15 @@
       "input": 2.5,
       "output": 10,
       "cacheRead": 1.25
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 128000,
+      "output": 16384,
+      "family": "gpt",
+      "released": "2024-08-06"
      }
     },
     "gpt-6-astra": {
@@ -573,6 +1108,16 @@
         "cacheWrite": 25
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt-astra",
+      "released": "2026-09-04"
      }
     },
     "gpt-5.2-pro": {
@@ -580,6 +1125,15 @@
      "cost": {
       "input": 21,
       "output": 168
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt-pro",
+      "released": "2025-12-11"
      }
     },
     "gpt-5.3-codex-spark": {
@@ -588,6 +1142,16 @@
       "input": 1.75,
       "output": 14,
       "cacheRead": 0.175
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 128000,
+      "output": 32000,
+      "family": "gpt-codex-spark",
+      "released": "2026-02-05"
      }
     },
     "gpt-4.1-mini": {
@@ -596,6 +1160,15 @@
       "input": 0.4,
       "output": 1.6,
       "cacheRead": 0.1
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1047576,
+      "output": 32768,
+      "family": "gpt-mini",
+      "released": "2025-04-14"
      }
     },
     "gpt-5.4": {
@@ -613,6 +1186,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt",
+      "released": "2026-03-05"
      }
     },
     "gpt-4-turbo": {
@@ -620,6 +1203,14 @@
      "cost": {
       "input": 10,
       "output": 30
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "context": 128000,
+      "output": 4096,
+      "family": "gpt",
+      "released": "2023-11-06"
      }
     },
     "gpt-5.1": {
@@ -628,6 +1219,16 @@
       "input": 1.25,
       "output": 10,
       "cacheRead": 0.125
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt",
+      "released": "2025-11-13"
      }
     },
     "o1": {
@@ -636,6 +1237,16 @@
       "input": 15,
       "output": 60,
       "cacheRead": 7.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 100000,
+      "family": "o",
+      "released": "2024-12-05"
      }
     },
     "gpt-4o": {
@@ -644,6 +1255,15 @@
       "input": 2.5,
       "output": 10,
       "cacheRead": 1.25
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 128000,
+      "output": 16384,
+      "family": "gpt",
+      "released": "2024-05-13"
      }
     },
     "gpt-5.6-luna": {
@@ -662,6 +1282,16 @@
         "cacheWrite": 0.5
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt-luna",
+      "released": "2026-07-09"
      }
     },
     "gpt-5.3-codex": {
@@ -670,6 +1300,16 @@
       "input": 1.75,
       "output": 14,
       "cacheRead": 0.175
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt-codex",
+      "released": "2026-02-05"
      }
     },
     "gpt-4o-mini": {
@@ -678,6 +1318,15 @@
       "input": 0.15,
       "output": 0.6,
       "cacheRead": 0.075
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 128000,
+      "output": 16384,
+      "family": "gpt-mini",
+      "released": "2024-07-18"
      }
     },
     "o1-pro": {
@@ -685,6 +1334,16 @@
      "cost": {
       "input": 150,
       "output": 600
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 100000,
+      "family": "o-pro",
+      "released": "2025-03-19"
      }
     },
     "gpt-4.1": {
@@ -693,6 +1352,15 @@
       "input": 2,
       "output": 8,
       "cacheRead": 0.5
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1047576,
+      "output": 32768,
+      "family": "gpt",
+      "released": "2025-04-14"
      }
     },
     "text-embedding-ada-002": {
@@ -700,6 +1368,12 @@
      "cost": {
       "input": 0.1,
       "output": 0
+     },
+     "caps": {
+      "context": 8192,
+      "output": 1536,
+      "family": "text-embedding",
+      "released": "2022-12-15"
      }
     },
     "gpt-5.4-nano": {
@@ -708,6 +1382,16 @@
       "input": 0.2,
       "output": 1.25,
       "cacheRead": 0.02
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt-nano",
+      "released": "2026-03-17"
      }
     },
     "gpt-5.5-pro": {
@@ -724,6 +1408,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt-pro",
+      "released": "2026-04-23"
      }
     },
     "gpt-5.4-mini": {
@@ -732,6 +1426,16 @@
       "input": 0.75,
       "output": 4.5,
       "cacheRead": 0.075
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt-mini",
+      "released": "2026-03-17"
      }
     },
     "gpt-image-2": {
@@ -740,6 +1444,13 @@
       "input": 5,
       "output": 30,
       "cacheRead": 1.25
+     },
+     "caps": {
+      "vision": true,
+      "context": 0,
+      "output": 0,
+      "family": "gpt-image",
+      "released": "2026-04-21"
      }
     },
     "gpt-3.5-turbo": {
@@ -748,6 +1459,12 @@
       "input": 0.5,
       "output": 1.5,
       "cacheRead": 0
+     },
+     "caps": {
+      "context": 16385,
+      "output": 4096,
+      "family": "gpt",
+      "released": "2023-03-01"
      }
     },
     "gpt-5.6": {
@@ -766,6 +1483,16 @@
         "cacheWrite": 10
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt-sol",
+      "released": "2026-07-09"
      }
     },
     "text-embedding-3-small": {
@@ -773,6 +1500,12 @@
      "cost": {
       "input": 0.02,
       "output": 0
+     },
+     "caps": {
+      "context": 8191,
+      "output": 1536,
+      "family": "text-embedding",
+      "released": "2024-01-25"
      }
     },
     "gpt-5-mini": {
@@ -781,6 +1514,16 @@
       "input": 0.25,
       "output": 2,
       "cacheRead": 0.025
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt-mini",
+      "released": "2025-08-07"
      }
     },
     "gpt-5.4-pro": {
@@ -797,6 +1540,15 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt-pro",
+      "released": "2026-03-05"
      }
     },
     "text-embedding-3-large": {
@@ -804,6 +1556,12 @@
      "cost": {
       "input": 0.13,
       "output": 0
+     },
+     "caps": {
+      "context": 8191,
+      "output": 3072,
+      "family": "text-embedding",
+      "released": "2024-01-25"
      }
     },
     "gpt-5.6-terra": {
@@ -822,6 +1580,16 @@
         "cacheWrite": 5
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt-terra",
+      "released": "2026-07-09"
      }
     },
     "gpt-4": {
@@ -829,6 +1597,13 @@
      "cost": {
       "input": 30,
       "output": 60
+     },
+     "caps": {
+      "tools": true,
+      "context": 8192,
+      "output": 8192,
+      "family": "gpt",
+      "released": "2023-11-06"
      }
     },
     "gpt-5.2": {
@@ -837,6 +1612,16 @@
       "input": 1.75,
       "output": 14,
       "cacheRead": 0.175
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt",
+      "released": "2025-12-11"
      }
     },
     "gpt-5": {
@@ -845,6 +1630,16 @@
       "input": 1.25,
       "output": 10,
       "cacheRead": 0.125
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 400000,
+      "output": 128000,
+      "family": "gpt",
+      "released": "2025-08-07"
      }
     },
     "gpt-5.2-chat-latest": {
@@ -853,6 +1648,16 @@
       "input": 1.75,
       "output": 14,
       "cacheRead": 0.175
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 128000,
+      "output": 16384,
+      "family": "gpt-codex",
+      "released": "2025-12-11"
      }
     },
     "o4-mini": {
@@ -861,6 +1666,16 @@
       "input": 1.1,
       "output": 4.4,
       "cacheRead": 0.275
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 100000,
+      "family": "o-mini",
+      "released": "2025-04-16"
      }
     },
     "gpt-realtime-2.1": {
@@ -869,6 +1684,15 @@
       "input": 4,
       "output": 24,
       "cacheRead": 0.4
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "context": 128000,
+      "output": 32000,
+      "family": "gpt",
+      "released": "2026-07-06"
      }
     },
     "o3-mini": {
@@ -877,6 +1701,15 @@
       "input": 1.1,
       "output": 4.4,
       "cacheRead": 0.55
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "context": 200000,
+      "output": 100000,
+      "family": "o-mini",
+      "released": "2024-12-20"
      }
     },
     "o3": {
@@ -885,6 +1718,16 @@
       "input": 2,
       "output": 8,
       "cacheRead": 0.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 100000,
+      "family": "o",
+      "released": "2025-04-16"
      }
     },
     "o3-pro": {
@@ -892,6 +1735,16 @@
      "cost": {
       "input": 20,
       "output": 80
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 200000,
+      "output": 100000,
+      "family": "o-pro",
+      "released": "2025-06-10"
      }
     },
     "gpt-5.3-chat-latest": {
@@ -900,6 +1753,15 @@
       "input": 1.75,
       "output": 14,
       "cacheRead": 0.175
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 128000,
+      "output": 16384,
+      "family": "gpt",
+      "released": "2026-03-03"
      }
     },
     "gpt-5.5": {
@@ -917,6 +1779,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1050000,
+      "output": 128000,
+      "family": "gpt",
+      "released": "2026-04-23"
      }
     },
     "gpt-4o-2024-11-20": {
@@ -925,6 +1797,15 @@
       "input": 2.5,
       "output": 10,
       "cacheRead": 1.25
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 128000,
+      "output": 16384,
+      "family": "gpt",
+      "released": "2024-11-20"
      }
     }
    }
@@ -938,6 +1819,17 @@
       "input": 1.9,
       "output": 8,
       "cacheRead": 0.38
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "kimi-k2",
+      "released": "2026-06-12"
      }
     },
     "kimi-k2.6": {
@@ -946,6 +1838,17 @@
       "input": 0.95,
       "output": 4,
       "cacheRead": 0.16
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "kimi-k2",
+      "released": "2026-04-21"
      }
     },
     "kimi-k2.7-code": {
@@ -954,6 +1857,17 @@
       "input": 0.95,
       "output": 4,
       "cacheRead": 0.19
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "kimi-k2",
+      "released": "2026-06-12"
      }
     },
     "kimi-k3": {
@@ -962,6 +1876,17 @@
       "input": 3,
       "output": 15,
       "cacheRead": 0.3
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 1048576,
+      "output": 131072,
+      "family": "kimi-k3",
+      "released": "2026-07-16"
      }
     }
    }
@@ -984,6 +1909,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 30000,
+      "family": "grok",
+      "released": "2026-04-17"
      }
     },
     "grok-4.20-0309-reasoning": {
@@ -1001,6 +1936,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 30000,
+      "family": "grok",
+      "released": "2026-03-09"
      }
     },
     "grok-4.20-multi-agent-0309": {
@@ -1018,6 +1963,15 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 30000,
+      "family": "grok",
+      "released": "2026-03-09"
      }
     },
     "grok-4.5": {
@@ -1035,6 +1989,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 500000,
+      "output": 500000,
+      "family": "grok",
+      "released": "2026-07-08"
      }
     },
     "grok-build-0.1": {
@@ -1052,6 +2016,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 256000,
+      "output": 256000,
+      "family": "grok-build",
+      "released": "2026-04-16"
      }
     },
     "grok-4.6": {
@@ -1069,6 +2043,16 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 500000,
+      "output": 500000,
+      "family": "grok",
+      "released": "2026-08-12"
      }
     },
     "grok-4.20-0309-non-reasoning": {
@@ -1086,6 +2070,15 @@
         "cacheWrite": null
        }
       ]
+     },
+     "caps": {
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "context": 1000000,
+      "output": 30000,
+      "family": "grok",
+      "released": "2026-03-09"
      }
     }
    }
@@ -1098,6 +2091,15 @@
      "cost": {
       "input": 0.15,
       "output": 0.15
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "pixtral",
+      "released": "2024-09-01"
      }
     },
     "devstral-small-2507": {
@@ -1105,6 +2107,14 @@
      "cost": {
       "input": 0.1,
       "output": 0.3
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "devstral",
+      "released": "2025-07-10"
      }
     },
     "mistral-small-2506": {
@@ -1112,6 +2122,15 @@
      "cost": {
       "input": 0.1,
       "output": 0.3
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 16384,
+      "family": "mistral-small",
+      "released": "2025-06-20"
      }
     },
     "magistral-small": {
@@ -1119,6 +2138,15 @@
      "cost": {
       "input": 0.5,
       "output": 1.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "magistral-small",
+      "released": "2025-03-17"
      }
     },
     "devstral-2512": {
@@ -1126,6 +2154,14 @@
      "cost": {
       "input": 0.4,
       "output": 2
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "devstral",
+      "released": "2025-12-09"
      }
     },
     "mistral-embed": {
@@ -1133,6 +2169,12 @@
      "cost": {
       "input": 0.1,
       "output": 0
+     },
+     "caps": {
+      "context": 8000,
+      "output": 3072,
+      "family": "mistral-embed",
+      "released": "2023-12-11"
      }
     },
     "devstral-small-2505": {
@@ -1140,6 +2182,14 @@
      "cost": {
       "input": 0.1,
       "output": 0.3
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "devstral",
+      "released": "2025-05-07"
      }
     },
     "labs-devstral-small-2512": {
@@ -1147,6 +2197,15 @@
      "cost": {
       "input": 0,
       "output": 0
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 256000,
+      "output": 256000,
+      "family": "devstral",
+      "released": "2025-12-09"
      }
     },
     "magistral-medium-latest": {
@@ -1154,6 +2213,15 @@
      "cost": {
       "input": 2,
       "output": 5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 16384,
+      "family": "magistral-medium",
+      "released": "2025-03-17"
      }
     },
     "open-mixtral-8x22b": {
@@ -1161,6 +2229,14 @@
      "cost": {
       "input": 2,
       "output": 6
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 64000,
+      "output": 64000,
+      "family": "mixtral",
+      "released": "2024-04-17"
      }
     },
     "open-mixtral-8x7b": {
@@ -1168,6 +2244,14 @@
      "cost": {
       "input": 0.7,
       "output": 0.7
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 32000,
+      "output": 32000,
+      "family": "mixtral",
+      "released": "2023-12-11"
      }
     },
     "open-mistral-7b": {
@@ -1175,6 +2259,14 @@
      "cost": {
       "input": 0.25,
       "output": 0.25
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 8000,
+      "output": 8000,
+      "family": "mistral",
+      "released": "2023-09-27"
      }
     },
     "mistral-medium-latest": {
@@ -1182,6 +2274,17 @@
      "cost": {
       "input": 1.5,
       "output": 7.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "mistral-medium",
+      "released": "2026-04-29"
      }
     },
     "devstral-medium-2507": {
@@ -1189,6 +2292,14 @@
      "cost": {
       "input": 0.4,
       "output": 2
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "devstral",
+      "released": "2025-07-10"
      }
     },
     "mistral-medium-2604": {
@@ -1196,6 +2307,17 @@
      "cost": {
       "input": 1.5,
       "output": 7.5
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "mistral-medium",
+      "released": "2026-04-29"
      }
     },
     "mistral-large-2512": {
@@ -1203,6 +2325,15 @@
      "cost": {
       "input": 0.5,
       "output": 1.5
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "mistral-large",
+      "released": "2024-11-01"
      }
     },
     "devstral-medium-latest": {
@@ -1210,6 +2341,14 @@
      "cost": {
       "input": 0.4,
       "output": 2
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "devstral",
+      "released": "2025-12-02"
      }
     },
     "voxtral-small-latest": {
@@ -1217,6 +2356,14 @@
      "cost": {
       "input": 0.1,
       "output": 0.3
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 32000,
+      "output": 32000,
+      "family": "voxtral",
+      "released": "2025-07-15"
      }
     },
     "ministral-8b-latest": {
@@ -1224,6 +2371,14 @@
      "cost": {
       "input": 0.1,
       "output": 0.1
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "ministral",
+      "released": "2024-10-01"
      }
     },
     "mistral-nemo": {
@@ -1231,6 +2386,14 @@
      "cost": {
       "input": 0.15,
       "output": 0.15
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "mistral-nemo",
+      "released": "2024-07-01"
      }
     },
     "mistral-small-latest": {
@@ -1238,6 +2401,16 @@
      "cost": {
       "input": 0.15,
       "output": 0.6
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 256000,
+      "output": 256000,
+      "family": "mistral-small",
+      "released": "2026-03-16"
      }
     },
     "open-mistral-nemo": {
@@ -1245,6 +2418,14 @@
      "cost": {
       "input": 0.15,
       "output": 0.15
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "mistral-nemo",
+      "released": "2024-07-01"
      }
     },
     "mistral-large-latest": {
@@ -1252,6 +2433,15 @@
      "cost": {
       "input": 0.5,
       "output": 1.5
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "mistral-large",
+      "released": "2024-11-01"
      }
     },
     "mistral-large-2411": {
@@ -1259,6 +2449,14 @@
      "cost": {
       "input": 2,
       "output": 6
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 131072,
+      "output": 16384,
+      "family": "mistral-large",
+      "released": "2024-11-18"
      }
     },
     "devstral-latest": {
@@ -1266,6 +2464,14 @@
      "cost": {
       "input": 0.4,
       "output": 2
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "devstral",
+      "released": "2025-12-09"
      }
     },
     "zai-glm-5-2": {
@@ -1274,6 +2480,16 @@
       "input": 1.4,
       "output": 4.4,
       "cacheRead": 0.14
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "structured": true,
+      "openWeights": true,
+      "context": 1000000,
+      "output": 131072,
+      "family": "glm",
+      "released": "2026-06-13"
      }
     },
     "mistral-small-2603": {
@@ -1281,6 +2497,16 @@
      "cost": {
       "input": 0.15,
       "output": 0.6
+     },
+     "caps": {
+      "reasoning": true,
+      "tools": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 256000,
+      "output": 256000,
+      "family": "mistral-small",
+      "released": "2026-03-16"
      }
     },
     "mistral-medium-2505": {
@@ -1288,6 +2514,14 @@
      "cost": {
       "input": 0.4,
       "output": 2
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "context": 131072,
+      "output": 131072,
+      "family": "mistral-medium",
+      "released": "2025-05-07"
      }
     },
     "codestral-latest": {
@@ -1295,6 +2529,14 @@
      "cost": {
       "input": 0.3,
       "output": 0.9
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 256000,
+      "output": 4096,
+      "family": "codestral",
+      "released": "2024-05-29"
      }
     },
     "ministral-3b-latest": {
@@ -1302,6 +2544,14 @@
      "cost": {
       "input": 0.04,
       "output": 0.04
+     },
+     "caps": {
+      "tools": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "ministral",
+      "released": "2024-10-01"
      }
     },
     "mistral-medium-2508": {
@@ -1309,6 +2559,14 @@
      "cost": {
       "input": 0.4,
       "output": 2
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "context": 262144,
+      "output": 262144,
+      "family": "mistral-medium",
+      "released": "2025-08-12"
      }
     },
     "pixtral-large-latest": {
@@ -1316,6 +2574,15 @@
      "cost": {
       "input": 2,
       "output": 6
+     },
+     "caps": {
+      "tools": true,
+      "vision": true,
+      "openWeights": true,
+      "context": 128000,
+      "output": 128000,
+      "family": "pixtral",
+      "released": "2024-11-01"
      }
     }
    }

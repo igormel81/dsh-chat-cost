@@ -6,6 +6,13 @@
  *
  * Without --all only the curated providers below are snapshotted (small file,
  * offline-capable). With --all every provider in the catalog is included.
+ *
+ * Each model keeps two groups of facts:
+ *  - `cost`   — USD per 1M tokens, cache read/write included;
+ *  - `caps`   — what the model can actually do (reasoning, tools, vision,
+ *               structured output, context and output limits, open weights).
+ * The adapter's capability flags are catalog facts; no quality score is stored,
+ * because the catalog has none and inventing one would be a lie.
  */
 import { writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -39,6 +46,22 @@ function normalizeCost(cost) {
   return Object.keys(out).length > 0 ? out : null
 }
 
+/** Capability facts, as the catalog states them. Absent means "not advertised". */
+function normalizeCaps(model) {
+  const caps = {}
+  if (model.reasoning === true) caps.reasoning = true
+  if (model.tool_call === true) caps.tools = true
+  if (model.structured_output === true) caps.structured = true
+  const inputs = Array.isArray(model.modalities?.input) ? model.modalities.input : []
+  if (inputs.includes('image')) caps.vision = true
+  if (model.open_weights === true) caps.openWeights = true
+  if (typeof model.limit?.context === 'number') caps.context = model.limit.context
+  if (typeof model.limit?.output === 'number') caps.output = model.limit.output
+  if (typeof model.family === 'string') caps.family = model.family
+  if (typeof model.release_date === 'string') caps.released = model.release_date
+  return Object.keys(caps).length > 0 ? caps : null
+}
+
 const response = await fetch(SOURCE, { headers: { 'user-agent': 'dsh-chat-cost price snapshot' } })
 if (!response.ok) throw new Error(`models.dev responded ${response.status}`)
 const catalog = await response.json()
@@ -50,7 +73,10 @@ for (const [key, provider] of Object.entries(catalog)) {
   for (const [id, model] of Object.entries(provider.models ?? {})) {
     const cost = normalizeCost(model.cost)
     if (cost === null) continue
-    models[id] = { name: model.name ?? id, cost }
+    const entry = { name: model.name ?? id, cost }
+    const caps = normalizeCaps(model)
+    if (caps !== null) entry.caps = caps
+    models[id] = entry
   }
   if (Object.keys(models).length === 0) continue
   providers[key] = { name: provider.name ?? key, models }

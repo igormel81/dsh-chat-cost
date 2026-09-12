@@ -79,6 +79,7 @@ The plugin turns the cost log into a constraint: the model plans the work, the p
 | `cost_estimate` | prices a list of units, packs them under a budget, and reports what would not fit |
 | `cost_plan` | writes or reads `<project>/.dsh-cost/plan.json` (plus a generated `plan.md`), and sets the money budget |
 | `cost_mark` | opens a plan unit, so later spend is attributed to the plan instead of guessed from timestamps |
+| `cost_scenarios` | compares routings — `quality`, `connected`, `economy`, `balanced` — and names the models worth connecting for this project |
 
 ```
 cost_plan   {action: write, budgetUsd: 20, units: [...]}   -> plan.json + plan.md, 20% held back for rework
@@ -88,6 +89,12 @@ cost_plan   {action: budget, budgetUsd: 25}                -> the widget then sh
 ```
 
 Two rules make the estimates usable rather than decorative. Estimates are **ranges**: a unit priced from declared tokens is exact, anything else carries a P50 and a P90 (twice the expected work by default, and the tool says whether the number came from `declared` tokens, from `history`, or from a `bootstrap` default). And a budget keeps a **20% reserve** for rework, because a plan without a buffer is a lie. A model with no price resolves to `—`; nothing is invented.
+
+### Which models are worth connecting
+
+`cost_scenarios` prices the same plan under four routings: **quality** (the preferred route for every unit), **connected** (the cheapest route already listed), **economy** (the cheapest adequate model in the whole catalog — which may mean connecting a provider you do not use yet) and **balanced** (preferred route for units marked `critical`, economy elsewhere). Each scenario reports expected and worst-case totals, whether it fits the budget, and the providers it needs.
+
+The recommendation names the cost drivers, ranks what switching would save per unit, and lists the three cheapest adequate alternatives with their context size and release date. Adequacy uses catalog facts — reasoning, tool calling, vision, context and output limits — and never a quality score, because the catalog has none. Free tiers are skipped unless asked for, and a cheaper model whose context is much smaller than your preferred route is flagged as narrower rather than quietly recommended.
 
 ## Limitations
 
