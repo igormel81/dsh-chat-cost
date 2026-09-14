@@ -1,15 +1,8 @@
 # README screenshot — what to capture and where it goes
 
-The catalogues show a summary and the README; a visitor decides in about ten seconds whether the plugin does anything real. Right now the strongest claim ("every answer carries its own price") has no picture. Two images fix that, and only the running GUI can produce them.
+The catalogues show a summary and the README; a visitor decides in about ten seconds whether the plugin does anything real. Two images fix that, and only the running GUI can produce them.
 
-## Shot 1 — the readout and one priced answer
-
-Frame both in one image if possible:
-
-- the composer line: `≈ $1.19` (the chat total, next to the budget if one is set);
-- one finished answer with `≈ $0.0xxx` underneath it.
-
-Dark theme, window wide enough that neither number is clipped, no personal paths visible.
+**Shot 1 is in.** `docs/readout.png` — the composer with the readout under the harness stats (`≈ $1.663` for a session at 49 turns, 894 steps, cache hit 99.5%), referenced from all three READMEs by an absolute raw URL so it renders on GitHub, on npm and in the mirrors. It was taken at 49 turns; the ledger at that moment held the same figure to the cent.
 
 ## Shot 2 — the tooltip
 
