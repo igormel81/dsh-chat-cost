@@ -77,3 +77,21 @@ interval pricing from the ledger, budget packing and routing scenarios.
 
 Re-check both crawlers a day after `npm publish`; if the radar still has not
 picked the repository up, open its PR template with the `dsh.bundle` evidence.
+
+## Submitted
+
+Both requests went out on 2026-09-14, from the account `igormel81`:
+
+| Target | Result | State |
+| --- | --- | --- |
+| `awesome-dsh-plugin/awesome-dsh-plugin` | [pull #5078](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/5078) — one file, `data/plugins/igormel81__dsh-chat-cost.yml`, +6 lines, mergeable | CI running; a maintainer reads the repository before merging |
+| `Ericwong5021/deepseek-plugin-store` | [issue #285](https://github.com/Ericwong5021/deepseek-plugin-store/issues/285) — their form field by field | open, awaiting registry review |
+
+The pull request was opened the way their guide prescribes: a fork, a branch, one
+file, no generated README touched. The body states the manifest, the category, the
+package and the repository age, and every claim in the entry is checkable in the
+repository — which matters, because that list reads a description as a claim about
+the code and returns entries that overstate.
+
+Both texts live in `submission/promo/`; the entry itself in
+`submission/awesome-dsh-plugin/`.
