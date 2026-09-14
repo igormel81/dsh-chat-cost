@@ -69,7 +69,7 @@ The summary is built ledger-first: recorded deltas are summed from the log file,
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.4","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.5","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## What it writes
@@ -92,7 +92,7 @@ No account, no telemetry, no server. At runtime the plugin makes no outbound req
 ## Releasing
 
 ```sh
-npm test            # 141 tests; the schema checks need a DSH profile for the validator
+npm test            # 142 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public
@@ -160,6 +160,25 @@ Plan and budget files are read-modify-write, so every mutation goes through one 
 `cost_scenarios` prices the same plan under four routings: **quality** (the preferred route for every unit), **connected** (the cheapest route already listed), **economy** (the cheapest adequate model in the whole catalog — which may mean connecting a provider you do not use yet) and **balanced** (preferred route for units marked `critical`, economy elsewhere). Each scenario reports expected and worst-case totals, whether it fits the budget, and the providers it needs.
 
 The recommendation names the cost drivers, ranks what switching would save per unit, and lists the three cheapest adequate alternatives with their context size and release date. Adequacy uses catalog facts — reasoning, tool calling, vision, context and output limits — and never a quality score, because the catalog has none. Free tiers are skipped unless asked for, and a cheaper model whose context is much smaller than your preferred route is flagged as narrower rather than quietly recommended.
+
+## Updating
+
+The plugin is a profile dependency, so updating it is a pnpm operation in the profile directory — and one detail decides whether it works:
+
+```sh
+dsh plugin --profile web list                       # what is installed right now
+dsh plugin --profile web add dsh-chat-cost@latest   # the normal path
+dsh plugin --profile web update dsh-chat-cost       # within the declared range only
+```
+
+| Command | What actually happens |
+| --- | --- |
+| `add dsh-chat-cost@<version>` | installs exactly that version, immediately — the reliable path when a release is minutes old |
+| `add dsh-chat-cost@latest` | resolves the `latest` tag; a version published minutes ago may be held back by pnpm's supply-chain policy, in which case the profile records an exception in `pnpm-workspace.yaml` or the previous version is installed |
+| `update dsh-chat-cost` | moves only inside the range already declared in `package.json`; with an exact pin it does nothing |
+| `add dsh-chat-cost` (no range) | resolves fresh and lands on `latest`; this is what re-installs the plugin if the profile lost it |
+
+Restart the host afterwards: the profile's composition is assembled at boot, so a running host keeps the version it started with. To see which release is running without a terminal, hover the readout — the tooltip names it, and every cost-log record carries it in its `plugin` field (`"plugin":"dsh-chat-cost@0.6.5"`), which is how a ledger entry can be traced back to the release that wrote it.
 
 ## Uninstall and recovery
 

@@ -135,6 +135,7 @@ const summary = {
   workspace: '/tmp/project',
   logPath: '/tmp/project/.dsh-cost/cost.jsonl',
   language: null,
+  version: '0.6.5',
   self: { sessionId: 'root' },
   sessions: [{ sessionId: 'root', model: 'deepseek-flash', usd: 0.15 }],
   totals: { usd: 0.165, chatUsd: 0.15, subagentUsd: 0.015, subagentCount: 1, unpricedSessions: [] },
@@ -204,6 +205,7 @@ test('the readout carries the tree total and the budget, and the tooltip names t
   assert.match(tip, /scenarios: economy \$0\.2600 · balanced \$5\.930 · quality \$7\.420/)
   assert.match(tip, /cheapest adequate routing saves \$7\.160/)
   assert.match(tip, /cost log: \/tmp\/project\/\.dsh-cost\/cost\.jsonl/)
+  assert.match(tip, /dsh-chat-cost 0\.6\.5/, 'the tooltip says which release answered')
   assert.match(tip, /\$1\.230 is not attributed to any plan unit/, 'unclaimed spend is called out')
   assert.match(tip, /\u00b7 synthesis \(kimi-k3 \u2192 gemini-2\.5-flash-lite\): \$5\.670 planned/, 'route objects print as model names, never as [object Object]')
 })

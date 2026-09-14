@@ -69,7 +69,7 @@ dsh plugin --profile web add dsh-chat-cost
 ## 费用日志格式
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.4","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.5","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## 写入了什么
@@ -92,7 +92,7 @@ dsh plugin --profile web add dsh-chat-cost
 ## 发布流程
 
 ```sh
-npm test            # 141 项测试；schema 检查需要 DSH profile 提供校验器
+npm test            # 142 项测试；schema 检查需要 DSH profile 提供校验器
 npm run prices      # 发布前刷新内置价格目录
 npm version minor
 npm publish --access public
@@ -160,6 +160,25 @@ cost_plan   {action: budget, budgetUsd: 25}                -> 组件随即显示
 `cost_scenarios` 用四种路由为同一个计划计价：**quality**（每个单元都用首选路由）、**connected**（已列出的最便宜路由）、**economy**（整个目录中价格最低且满足要求的模型，可能需要接入你尚未使用的供应商）以及 **balanced**（标记为 `critical` 的单元用首选路由，其余用 economy）。每个方案都会给出预期与最坏总价、是否在预算内，以及需要哪些供应商。
 
 随后给出的建议会指出主要成本来源、按单元排序切换可节省的金额，并列出三个最便宜的合格替代模型及其上下文大小与发布时间。合格性依据目录事实——推理、工具调用、视觉、上下文与输出上限——而不是质量评分，因为目录里没有评分。免费额度默认跳过，上下文明显小于首选路由的便宜模型会被标记为更窄，而不会悄悄推荐。
+
+## 更新
+
+插件是 profile 的依赖，因此更新就是在 profile 目录里执行 pnpm 操作，而有一个细节决定它是否生效：
+
+```sh
+dsh plugin --profile web list                       # 当前安装的是什么
+dsh plugin --profile web add dsh-chat-cost@latest   # 常规方式
+dsh plugin --profile web update dsh-chat-cost       # 只在已声明的版本范围内更新
+```
+
+| 命令 | 实际发生的事 |
+| --- | --- |
+| `add dsh-chat-cost@<版本>` | 精确安装该版本，立即生效——刚发布几分钟时这是可靠方式 |
+| `add dsh-chat-cost@latest` | 解析 `latest` 标签；几分钟前发布的版本可能被 pnpm 的供应链策略拦下，此时 profile 会在 `pnpm-workspace.yaml` 中记录例外，或者安装上一个版本 |
+| `update dsh-chat-cost` | 只在 `package.json` 已声明的范围内前移；若为精确锁定则什么都不做 |
+| `add dsh-chat-cost`（不带范围） | 重新解析并落到 `latest`；profile 丢失插件时也是这样装回来 |
+
+之后请重启宿主：profile 的组合是在启动时装配的，运行中的宿主会一直停留在启动时的版本。不打开终端也能知道运行的是哪个版本——悬停读数控件即可，提示中会写出该版本；而每条费用日志记录都在 `plugin` 字段里带着它（`"plugin":"dsh-chat-cost@0.6.5"`），因此一条账目可以追溯到写入它的那个发布。
 
 ## 卸载与恢复
 

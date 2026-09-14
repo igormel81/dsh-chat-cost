@@ -429,3 +429,10 @@ test('the same tokens cost double inside a DeepSeek peak window, and the record 
   assert.ok(Math.abs(later.self.usd - 0.15) < 1e-9, `recorded interval re-priced at peak: ${later.self.usd}`)
   assert.equal(later.self.tier, 'off-peak', 'the record keeps the tariff it was written with')
 })
+
+test('the summary names the release that produced it', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-version-'))
+  const root = session({ id: 'root', cwd: project, usage: { uncachedInputTokens: 1000 } })
+  const summary = await summaryAt(context({ sessions: [root] }), settings, __createState(), 'root')
+  assert.equal(summary.version, PLUGIN_VERSION, 'the readout can answer "which version am I running"')
+})
