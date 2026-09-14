@@ -10,6 +10,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { __buildSummary, __config, __createState } from '../lib/index.js'
 
+/** Monday noon UTC: outside both DeepSeek peak windows, so the tariff is fixed. */
+const OFF_PEAK = new Date('2026-09-14T12:00:00Z')
+/** Monday 07:00 UTC: inside the 06:00-10:00 peak window, where the price doubles. */
+const PEAK = new Date('2026-09-14T07:00:00Z')
+/** Price the tree at a pinned moment; a price test must not depend on when it runs. */
+const summaryAt = (ctx, settings, state, sessionId, now = OFF_PEAK) => __buildSummary(ctx, settings, state, sessionId, now)
+
 function session(id, cwd, tokens) {
   return {
     id,
@@ -42,9 +49,9 @@ test('three overlapping requests for one tree write one ledger line', async () =
   const state = __createState()
 
   const results = await Promise.all([
-    __buildSummary(ctx, settings, state, 'root'),
-    __buildSummary(ctx, settings, state, 'root'),
-    __buildSummary(ctx, settings, state, 'root')
+    summaryAt(ctx, settings, state, 'root'),
+    summaryAt(ctx, settings, state, 'root'),
+    summaryAt(ctx, settings, state, 'root')
   ])
   assert.equal(results.every((result) => result.ok === true), true)
   assert.equal(results[0].totals.usd, results[2].totals.usd, 'every caller sees the same figure')
@@ -60,9 +67,9 @@ test('a later change still appends exactly one more line', async () => {
   const settings = __config({})
   const state = __createState()
 
-  await Promise.all([__buildSummary(ctx, settings, state, 'root'), __buildSummary(ctx, settings, state, 'root')])
+  await Promise.all([summaryAt(ctx, settings, state, 'root'), summaryAt(ctx, settings, state, 'root')])
   root.usage = { uncachedInputTokens: 2000000 }
-  await Promise.all([__buildSummary(ctx, settings, state, 'root'), __buildSummary(ctx, settings, state, 'root')])
+  await Promise.all([summaryAt(ctx, settings, state, 'root'), summaryAt(ctx, settings, state, 'root')])
 
   const lines = await ledgerLines(project)
   assert.equal(lines.length, 2)
@@ -80,8 +87,8 @@ test('the queue is per session tree, so two chats flush independently', async ()
   const state = __createState()
 
   const [a, b] = await Promise.all([
-    __buildSummary(ctx, settings, state, 'a'),
-    __buildSummary(ctx, settings, state, 'b')
+    summaryAt(ctx, settings, state, 'a'),
+    summaryAt(ctx, settings, state, 'b')
   ])
   assert.equal(a.ok, true)
   assert.equal(b.ok, true)

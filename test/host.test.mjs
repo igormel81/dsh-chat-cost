@@ -32,6 +32,13 @@ function context({ sessions, query, projections = true }) {
   }
 }
 
+/** Monday noon UTC: outside both DeepSeek peak windows, so the tariff is fixed. */
+const OFF_PEAK = new Date('2026-09-14T12:00:00Z')
+/** Monday 07:00 UTC: inside the 06:00-10:00 peak window, where the price doubles. */
+const PEAK = new Date('2026-09-14T07:00:00Z')
+/** Price the tree at a pinned moment; a price test must not depend on when it runs. */
+const summaryAt = (ctx, settings, state, sessionId, now = OFF_PEAK) => __buildSummary(ctx, settings, state, sessionId, now)
+
 const settings = __config({})
 
 test('a live chat plus a live subagent are priced into one tree and logged', async () => {
@@ -41,7 +48,7 @@ test('a live chat plus a live subagent are priced into one tree and logged', asy
   const child = session({ id: 'child', parent: 'root', provider: 'moonshot', model: 'kimi-k3', usage: { outputTokens: 1000 } })
   const ctx = context({ sessions: [root, child] })
 
-  const summary = await __buildSummary(ctx, settings, __createState(), 'root')
+  const summary = await summaryAt(ctx, settings, __createState(), 'root')
 
   assert.equal(summary.ok, true)
   assert.equal(summary.rootSessionId, 'root')
@@ -79,15 +86,15 @@ test('an unchanged tree writes nothing, a changed session appends only its delta
   const ctx = context({ sessions: [root] })
   const state = __createState()
 
-  const first = await __buildSummary(ctx, settings, state, 'root')
+  const first = await summaryAt(ctx, settings, state, 'root')
   const afterFirst = (await readFile(first.logPath, 'utf8')).trim().split('\n').length
   assert.equal(afterFirst, 1)
 
-  const second = await __buildSummary(ctx, settings, state, 'root')
+  const second = await summaryAt(ctx, settings, state, 'root')
   assert.equal((await readFile(second.logPath, 'utf8')).trim().split('\n').length, 1, 'no new line without a change')
 
   root.usage = { uncachedInputTokens: 2000000 }
-  const third = await __buildSummary(ctx, settings, state, 'root')
+  const third = await summaryAt(ctx, settings, state, 'root')
   const lines = (await readFile(third.logPath, 'utf8')).trim().split('\n')
   assert.equal(lines.length, 2)
   const last = JSON.parse(lines[1])
@@ -101,7 +108,7 @@ test('a persisted-only child is reported unpriced instead of estimated', async (
   const query = {
     traceSession: async () => ({ root: 'root', complete: true, descendants: [{ sessionId: 'cold-1', parentId: 'root', depth: 1 }] })
   }
-  const summary = await __buildSummary(context({ sessions: [root], query }), settings, __createState(), 'root')
+  const summary = await summaryAt(context({ sessions: [root], query }), settings, __createState(), 'root')
 
   assert.equal(summary.totals.sessions, 2)
   assert.deepEqual(summary.totals.unpricedSessions, ['cold-1'])
@@ -116,7 +123,7 @@ test('a model with no catalog price stays unpriced and does not poison the tree 
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   const root = session({ id: 'root', cwd: project, provider: 'unknown-vendor', model: 'mystery-1', usage: { outputTokens: 500 } })
   const ctx = context({ sessions: [root] })
-  const summary = await __buildSummary(ctx, settings, __createState(), 'root')
+  const summary = await summaryAt(ctx, settings, __createState(), 'root')
 
   assert.equal(summary.sessions[0].pricingSource, 'none')
   assert.equal(summary.sessions[0].usd, null)
@@ -127,24 +134,24 @@ test('a model with no catalog price stays unpriced and does not poison the tree 
 test('writeLog: false never touches the project folder', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 100 } })
-  const summary = await __buildSummary(context({ sessions: [root] }), __config({ writeLog: false }), __createState(), 'root')
+  const summary = await summaryAt(context({ sessions: [root] }), __config({ writeLog: false }), __createState(), 'root')
   await assert.rejects(() => readFile(join(project, '.dsh-cost', 'cost.jsonl'), 'utf8'))
   assert.equal(summary.logPath, null)
 })
 
 test('unknown sessions and a missing store fail with named reasons', async () => {
   const ctx = context({ sessions: [] })
-  assert.deepEqual(await __buildSummary(ctx, settings, __createState(), 'nope'), { ok: false, reason: 'unknown-session' })
+  assert.deepEqual(await summaryAt(ctx, settings, __createState(), 'nope'), { ok: false, reason: 'unknown-session' })
 
   const empty = { get: () => undefined }
-  assert.deepEqual(await __buildSummary(empty, settings, __createState(), 'root'), { ok: false, reason: 'session-store-unavailable' })
+  assert.deepEqual(await summaryAt(empty, settings, __createState(), 'root'), { ok: false, reason: 'session-store-unavailable' })
 })
 
 test('a custom log directory is respected', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   await mkdir(join(project, '.git'), { recursive: true })
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 100 } })
-  const summary = await __buildSummary(context({ sessions: [root] }), __config({ logDir: '.cost' }), __createState(), 'root')
+  const summary = await summaryAt(context({ sessions: [root] }), __config({ logDir: '.cost' }), __createState(), 'root')
   assert.equal(summary.logPath, join(project, '.cost', 'cost.jsonl'))
   assert.equal(await readFile(join(project, '.gitignore'), 'utf8'), '.cost/\n')
 })
@@ -175,9 +182,9 @@ test('model attribution reads the newest request header', () => {
 test('the Host forwards its configured language to the client', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 10 } })
-  const summary = await __buildSummary(context({ sessions: [root] }), __config({ language: 'ru' }), __createState(), 'root')
+  const summary = await summaryAt(context({ sessions: [root] }), __config({ language: 'ru' }), __createState(), 'root')
   assert.equal(summary.language, 'ru')
-  const plain = await __buildSummary(context({ sessions: [root] }), __config({}), __createState(), 'root')
+  const plain = await summaryAt(context({ sessions: [root] }), __config({}), __createState(), 'root')
   assert.equal(plain.language, null, 'an unset language lets the client fall back')
 })
 
@@ -211,7 +218,7 @@ test('spend that no plan unit claimed is reported as unlabelled', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   await appendCostLog(project, [costRecord({ sessionId: 'root', model: 'deepseek-flash', deltaUsd: 0.42, cumulativeUsd: 0.42, usage: { outputTokens: 1000 } })], {})
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 1000 } })
-  const summary = await __buildSummary(context({ sessions: [root] }), settings, __createState(), 'root')
+  const summary = await summaryAt(context({ sessions: [root] }), settings, __createState(), 'root')
 
   assert.equal(summary.ok, true)
   assert.ok(Math.abs(summary.unlabeledUsd - 0.42) < 1e-9, `expected the unclaimed spend, got ${summary.unlabeledUsd}`)
@@ -224,7 +231,7 @@ test('a mark claims the spend that follows it, so nothing stays unlabelled', asy
   await appendMarks(project, [markRecord({ sessionId: 'root', label: 'research' })], {})
   await appendCostLog(project, [costRecord({ sessionId: 'root', model: 'deepseek-flash', deltaUsd: 0.42, cumulativeUsd: 0.42, usage: { outputTokens: 1000 } })], {})
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 1000 } })
-  const summary = await __buildSummary(context({ sessions: [root] }), settings, __createState(), 'root')
+  const summary = await summaryAt(context({ sessions: [root] }), settings, __createState(), 'root')
 
   assert.equal(summary.unlabeledUsd, 0)
   assert.equal(summary.ledger.marks, 1)
@@ -237,18 +244,18 @@ test('a second run over an unchanged tree appends nothing and reuses the read', 
   const ctx = context({ sessions: [root] })
   const state = __createState()
 
-  const first = await __buildSummary(ctx, settings, state, 'root')
+  const first = await summaryAt(ctx, settings, state, 'root')
   assert.equal(first.ledger.records, 1, 'the first run records the interval')
   assert.equal(state.ledgerCache.size, 0, 'a write invalidates the cached read')
 
-  const second = await __buildSummary(ctx, settings, state, 'root')
+  const second = await summaryAt(ctx, settings, state, 'root')
   assert.equal(second.ledger.records, 1, 'an unchanged tree adds no record')
   assert.equal(second.totals.usd, first.totals.usd, 'and the figure holds')
   assert.equal(state.ledgerCache.size, 1, 'a run that writes nothing leaves the read cached for the next poll')
 
   // The interval is priced once: adding tokens prices only the difference.
   root.usage = { uncachedInputTokens: 2000000 }
-  const third = await __buildSummary(ctx, settings, state, 'root')
+  const third = await summaryAt(ctx, settings, state, 'root')
   assert.equal(third.ledger.records, 2)
   assert.ok(Math.abs(third.totals.usd - 0.3) < 1e-9, `expected 1M off-peak + 1M more = 0.30, got ${third.totals.usd}`)
   assert.equal(state.ledgerCache.size, 0, 'and the new record invalidates it again')
@@ -268,8 +275,8 @@ test('a session carrying the real projection state is priced, not reported as fr
     }
   })
 
-  const fromFlat = await __buildSummary(context({ sessions: [flat] }), settings, __createState(), 'flat')
-  const fromProjection = await __buildSummary(context({ sessions: [projected] }), settings, __createState(), 'projected')
+  const fromFlat = await summaryAt(context({ sessions: [flat] }), settings, __createState(), 'flat')
+  const fromProjection = await summaryAt(context({ sessions: [projected] }), settings, __createState(), 'projected')
 
   assert.ok(Math.abs(fromProjection.self.usd - 0.15) < 1e-9, `projected usd ${fromProjection.self.usd}`)
   assert.equal(fromProjection.self.usd, fromFlat.self.usd, 'the wrapper must not change the price')
@@ -311,7 +318,7 @@ test('a chat that is not open is priced from the log instead of reported as noth
   })
 
   const before = (await readFile(join(project, '.dsh-cost', 'cost.jsonl'), 'utf8')).trim().split('\n').length
-  const summary = await __buildSummary(ctx, settings, __createState(), past)
+  const summary = await summaryAt(ctx, settings, __createState(), past)
 
   assert.equal(summary.ok, true)
   assert.equal(summary.recorded, true, 'the answer says the numbers come from the log')
@@ -341,7 +348,7 @@ test('a session the log never saw is reported without a price, and an unresolvab
     }
   })
 
-  const summary = await __buildSummary(ctx, settings, __createState(), 'never-logged')
+  const summary = await summaryAt(ctx, settings, __createState(), 'never-logged')
   assert.equal(summary.ok, true)
   assert.equal(summary.recorded, true)
   assert.equal(summary.totals.usd, null, 'no record, no invented price')
@@ -349,7 +356,7 @@ test('a session the log never saw is reported without a price, and an unresolvab
 
   // Neither live nor traceable: the answer stays what it was.
   const blind = context({ sessions: [], query: { traceSession: async () => { throw new Error('not found') } } })
-  assert.deepEqual(await __buildSummary(blind, settings, __createState(), 'gone'), { ok: false, reason: 'unknown-session' })
+  assert.deepEqual(await summaryAt(blind, settings, __createState(), 'gone'), { ok: false, reason: 'unknown-session' })
 })
 
 test('the summary carries a price per turn, so an answer can show its own cost', async () => {
@@ -365,7 +372,7 @@ test('the summary carries a price per turn, so an answer can show its own cost',
     { type: 'assistant/message', data: { turn: 2, step: 1, usage: { inputTokens: 500000, outputTokens: 0 } } }
   ]
 
-  const summary = await __buildSummary(context({ sessions: [root] }), settings, __createState(), 'root')
+  const summary = await summaryAt(context({ sessions: [root] }), settings, __createState(), 'root')
 
   assert.equal(Array.isArray(summary.turns), true)
   assert.deepEqual(summary.turns.map((turn) => turn.turn), [1, 2])
@@ -388,7 +395,37 @@ test('a chat priced from the log has no per-turn numbers to offer', async () => 
     query: { traceSession: async () => ({ target: { header: { id: 'past', cwd: project } }, root: { header: { id: 'past', cwd: project } }, descendants: [], complete: true }) }
   })
 
-  const summary = await __buildSummary(ctx, settings, __createState(), 'past')
+  const summary = await summaryAt(ctx, settings, __createState(), 'past')
   assert.equal(summary.recorded, true)
   assert.deepEqual(summary.turns, [], 'the log has no turn boundaries, so none are invented')
+})
+
+test('the same tokens cost double inside a DeepSeek peak window, and the record says which', async () => {
+  // The suite used to assert off-peak prices against the wall clock, so it failed
+  // between 01:00-04:00 and 06:00-10:00 UTC on weekdays — in CI as well. The clock
+  // is now an argument, and this test is the reason it exists.
+  const offProject = await mkdtemp(join(tmpdir(), 'dsh-cost-peak-off-'))
+  const peakProject = await mkdtemp(join(tmpdir(), 'dsh-cost-peak-on-'))
+  const usage = { uncachedInputTokens: 1000000, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 }
+
+  const off = await summaryAt(context({ sessions: [session({ id: 'root', cwd: offProject, usage })] }), settings, __createState(), 'root', OFF_PEAK)
+  const on = await summaryAt(context({ sessions: [session({ id: 'root', cwd: peakProject, usage })] }), settings, __createState(), 'root', PEAK)
+
+  assert.ok(Math.abs(off.self.usd - 0.15) < 1e-9, `off-peak usd ${off.self.usd}`)
+  assert.ok(Math.abs(on.self.usd - 0.3) < 1e-9, `peak usd ${on.self.usd}`)
+  assert.equal(off.self.tier, 'off-peak')
+  assert.equal(on.self.tier, 'peak')
+
+  // And the interval is not re-priced later: viewing an off-peak chat during a
+  // peak window keeps the tariff it was billed at, which is the whole point of
+  // pricing deltas instead of snapshots.
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-peak-recorded-'))
+  const root = session({ id: 'root', cwd: project, usage })
+  const state = __createState()
+  const first = await summaryAt(context({ sessions: [root] }), settings, state, 'root', OFF_PEAK)
+  const later = await summaryAt(context({ sessions: [root] }), settings, state, 'root', PEAK)
+
+  assert.ok(Math.abs(first.self.usd - 0.15) < 1e-9)
+  assert.ok(Math.abs(later.self.usd - 0.15) < 1e-9, `recorded interval re-priced at peak: ${later.self.usd}`)
+  assert.equal(later.self.tier, 'off-peak', 'the record keeps the tariff it was written with')
 })
