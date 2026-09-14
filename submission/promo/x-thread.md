@@ -55,4 +55,4 @@ them), and long-context tiers for some Gemini/Grok models are not applied yet.
 **Notes**
 
 - Post 1 must not be a link post: links in the first post cut reach. Put the link in post 4, or in a reply to post 1.
-- Screenshots beat text here. Two images are enough: the composer readout, and one answer with its price under it. Attach them to post 1.
+- Screenshots beat text here, and both are ready: `docs/readout.png` (the composer line) and `docs/answer.png` (one answer, `≈ $0.0441`). Attach them to post 1.

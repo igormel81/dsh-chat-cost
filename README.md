@@ -11,6 +11,8 @@ English | [中文](README.zh.md) | [Русский](README.ru.md)
 
 ![The readout in the composer: one line under the harness stats, the session priced from the cost log](https://raw.githubusercontent.com/igormel81/dsh-chat-cost/main/docs/readout.png)
 
+![The price of one answer, under that answer: this turn's own spend, not a share of the session total](https://raw.githubusercontent.com/igormel81/dsh-chat-cost/main/docs/answer.png)
+
 **Keywords:** DeepSeek Harness plugin, dsh plugin, dsh-plugin, token cost, cost per chat, subagent cost, session tree cost, LLM spend tracking, token usage, cost log, JSONL, local-first, DeepSeek V4.1 Flash, DeepSeek V4 Pro, OpenAI GPT-5, Anthropic Claude, Google Gemini, Kimi K3 (Moonshot), xAI Grok, Mistral, cache read and cache write pricing, peak and off-peak pricing, Cordis plugin.
 
 ## Status
@@ -71,7 +73,7 @@ The summary is built ledger-first: recorded deltas are summed from the log file,
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.6","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.7","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## What it writes
@@ -180,7 +182,7 @@ dsh plugin --profile web update dsh-chat-cost       # within the declared range 
 | `update dsh-chat-cost` | moves only inside the range already declared in `package.json`; with an exact pin it does nothing |
 | `add dsh-chat-cost` (no range) | resolves fresh and lands on `latest`; this is what re-installs the plugin if the profile lost it |
 
-Restart the host afterwards: the profile's composition is assembled at boot, so a running host keeps the version it started with. To see which release is running without a terminal, hover the readout — the tooltip names it, and every cost-log record carries it in its `plugin` field (`"plugin":"dsh-chat-cost@0.6.6"`), which is how a ledger entry can be traced back to the release that wrote it.
+Restart the host afterwards: the profile's composition is assembled at boot, so a running host keeps the version it started with. To see which release is running without a terminal, hover the readout — the tooltip names it, and every cost-log record carries it in its `plugin` field (`"plugin":"dsh-chat-cost@0.6.7"`), which is how a ledger entry can be traced back to the release that wrote it.
 
 ## Uninstall and recovery
 

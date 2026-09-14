@@ -2,11 +2,13 @@
 
 The catalogues show a summary and the README; a visitor decides in about ten seconds whether the plugin does anything real. Two images fix that, and only the running GUI can produce them.
 
-**Shot 1 is in.** `docs/readout.png` — the composer with the readout under the harness stats (`≈ $1.663` for a session at 49 turns, 894 steps, cache hit 99.5%), referenced from all three READMEs by an absolute raw URL so it renders on GitHub, on npm and in the mirrors. It was taken at 49 turns; the ledger at that moment held the same figure to the cent.
+**Both shots are in.** `docs/readout.png` — the composer with the readout under the harness stats (`≈ $1.663` for a session at 49 turns, 894 steps, cache hit 99.5%), referenced from all three READMEs by an absolute raw URL so it renders on GitHub, on npm and in the mirrors. It was taken at 49 turns; the ledger at that moment held the same figure to the cent.
 
-## Shot 2 — the tooltip
+Shot 2 is `docs/answer.png` — one finished answer with `≈ $0.0441` above its action icons. That figure was checked against the host at the same moment: it reported turn 50 at $0.044123712, which is that answer and nothing else.
 
-Hover the readout so the tooltip is open: it shows this chat, the subagents, the tree total, the token buckets, the models, the plan lines, the unclaimed-spend warning, and the log path. That single tooltip answers "what do I actually get" better than a paragraph.
+## Shot 3 (optional) — the tooltip
+
+Hover the readout so the tooltip is open: it shows this chat, the subagents, the tree total, the token buckets, the models, the plan lines, the unclaimed-spend warning, the release version, and the log path. Worth adding once the two stills are no longer enough.
 
 ## Where they go
 

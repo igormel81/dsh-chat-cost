@@ -58,6 +58,8 @@ to me than stars.
 
 **Notes**
 
+- Attach the two stills from `docs/`: the composer readout, and one answer carrying `≈ $0.0441`. Both are in the README already, so the post and the repository agree.
+
 - r/LocalLLaMA tolerates tool posts if they are specific and the author answers; r/DeepSeek and r/LLMDevs are smaller but closer to the topic. Post one, wait a day, then the other — the same text posted twice in an hour reads as spam.
 - Do not paste the README. The three numbers that make the case are: interval pricing, per-turn sum equals the total, and the dash instead of a guess.
 - If someone says "the provider already shows this", point at the interval argument rather than repeating features.

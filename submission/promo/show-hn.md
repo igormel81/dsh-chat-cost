@@ -55,6 +55,8 @@ expect the interesting criticism to be about it too.
 
 **Notes for whoever posts it**
 
+- Two stills are ready in `docs/`: the composer readout (`≈ $1.663` for a session at 49 turns) and one answer carrying `≈ $0.0441`. HN shows no images, so they belong in the first comment as links, not headlines.
+
 - HN punishes marketing language. The text above makes claims only where the repository can be checked, and states the limits in the same post; that is deliberate.
 - The submission URL should be the repository, not npm: readers want the README and the source.
 - Answer the first technical question within minutes, or the thread dies. The most likely one is "why not just use the provider's dashboard" — the answer is the interval argument above.
