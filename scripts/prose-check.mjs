@@ -9,6 +9,9 @@
  * published false-positive measurements, so this script is a thin wrapper, not a
  * second opinion:
  *
+ * Promotion texts live here too: they are prose we publish, in three languages,
+ * and they make claims about the plugin, so they get the same artefact gate.
+ *
  *   humanizer-markers   artefacts (paste leftovers). Class A is a hard gate —
  *                       its published false-positive rate is zero — while class B
  *                       (zero-width marks, exotic spaces) is printed, because its
@@ -30,13 +33,17 @@
  *   npm run prose -- --strict   # fail when the tool is missing, for CI
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const DOCS = ['README.md', 'README.ru.md', 'README.zh.md', 'README.i18n.yaml', 'cordis.patch.yml', 'submission/awesome-dsh-plugin/PLAN.md']
+const PROMO_DIR = join('submission', 'promo')
+const PROMO = existsSync(join(root, PROMO_DIR))
+  ? readdirSync(join(root, PROMO_DIR)).filter((name) => name.endsWith('.md') || name.endsWith('.txt')).map((name) => join(PROMO_DIR, name))
+  : []
+const DOCS = ['README.md', 'README.ru.md', 'README.zh.md', 'README.i18n.yaml', 'cordis.patch.yml', 'submission/awesome-dsh-plugin/PLAN.md', ...PROMO]
 const READMES = ['README.md', 'README.ru.md', 'README.zh.md']
 const TERMS = join('scripts', 'prose-terms.txt')
 const strict = process.argv.includes('--strict')

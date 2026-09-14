@@ -1,0 +1,45 @@
+### Plugin name
+
+igormel81/dsh-chat-cost
+
+### Repository URL
+
+https://github.com/igormel81/dsh-chat-cost
+
+### Install identifier
+
+dsh-chat-cost
+
+### Category
+
+Integrations & Communication / Notifications & Monitoring
+
+### Category evidence
+
+package.json declares "dsh": { "bundle": { "patch": "./cordis.patch.yml" }, "client": { "platform": "web" } }
+README.md -> "Configuration", "Cost log format", "What it writes" (the four files it leaves in a project folder)
+lib/index.js -> the web route /api/plugins/dsh-chat-cost/summary and the ledger flush
+lib/tools.js -> six model-facing tools: cost_price, cost_history, cost_estimate, cost_plan, cost_mark, cost_scenarios
+lib/turns.js -> per-turn pricing folded from the session's own events
+test/ -> 140 tests, run with npm test
+
+### Summary
+
+Live token cost for every chat in the DeepSeek Harness Web UI: the chat itself, its subagents and the whole session tree. The widget in the composer shows the chat total, and every finished answer carries its own price underneath it. A chat that is not currently open is priced from the cost log instead of showing nothing. Prices come from a bundled models.dev snapshot of seven providers and 139 priced models, with DeepSeek on its own peak and off-peak table; cache read and cache write rates are used wherever the provider publishes them.
+
+Beyond the readout, the plugin turns the log into a constraint: six tools let the model price a route, record what a unit of work actually cost, pack a work plan under a money limit with a 20% reserve for rework, and compare routing scenarios that name the models worth connecting. Spend that belongs to no plan unit is reported rather than folded into a total.
+
+The cost log is append-only JSONL in the project folder (.dsh-cost/cost.jsonl), one record per session per interval, with the tree position, four token buckets, the delta and cumulative cost, and the tariff it was billed at. Cost is computed per interval, so work that ran during a DeepSeek peak window keeps the price it was really billed at. No account, no telemetry, no outbound request at runtime.
+
+Install: dsh plugin --profile web add dsh-chat-cost (npm, MIT, releases signed with provenance). Documentation in English, Chinese and Russian.
+
+### Maintainer identity
+
+igormel81
+
+### Submission declaration
+
+- [x] I maintain this plugin or have permission to submit it.
+- [x] The repository is public and the information above is accurate to the best of my knowledge.
+- [x] The root package.json declares dsh.bundle and the README includes installation or usage guidance.
+- [x] This request contains exactly one plugin.
