@@ -95,3 +95,17 @@ the code and returns entries that overstate.
 
 Both texts live in `submission/promo/`; the entry itself in
 `submission/awesome-dsh-plugin/`.
+
+## Merged
+
+Pull #5078 was merged on **2026-09-15T06:28:59Z**. The entry now lives upstream as
+`data/plugins/igormel81__dsh-chat-cost.yml`, and the generated list places it in
+**Usage & Billing** — the line is in `README.md` of the list, between
+`ibka512/dsh-ibka-balance` and `izz-BLUE/dsh-deepseek-usage-dashboard`. The badge
+they publish (`https://awesome-dsh-plugin.com/badge.svg`) is now in all three of
+our READMEs, and `dsh-market`, which reads the generated list, follows on its own
+schedule.
+
+The store submission is still in review: their governance bot approved issue #285
+labelled it `gov:approved`, verified the commit and opened pull #286 with a
+generated registry entry.

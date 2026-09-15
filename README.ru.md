@@ -7,6 +7,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![DeepSeek Harness plugin](https://img.shields.io/badge/DeepSeek%20Harness-plugin-blueviolet)](#установка)
 [![npm](https://img.shields.io/npm/v/dsh-chat-cost.svg)](https://www.npmjs.com/package/dsh-chat-cost)
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 [![providers](https://img.shields.io/badge/providers-7%20%C2%B7%20139%20models-informational)](#правила-расчёта)
 
 ![The readout in the composer: one line under the harness stats, the session priced from the cost log](https://raw.githubusercontent.com/igormel81/dsh-chat-cost/main/docs/readout.png)
@@ -73,7 +74,7 @@ dsh plugin --profile web add dsh-chat-cost
 ## Формат лога расхода
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.7","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.8","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## Что и куда пишется
@@ -182,7 +183,7 @@ dsh plugin --profile web update dsh-chat-cost       # только внутри 
 | `update dsh-chat-cost` | двигает только внутри диапазона, уже объявленного в `package.json`; при точном закреплении не делает ничего |
 | `add dsh-chat-cost` (без диапазона) | разрешает заново и ставит `latest`; так же плагин возвращается, если профиль его потерял |
 
-После этого перезапустите хост: композиция профиля собирается при загрузке, поэтому работающий хост остаётся на той версии, с которой стартовал. Узнать, какой релиз работает, можно и без терминала — наведите на виджет, подсказка называет версию, и каждая запись лога несёт её в поле `plugin` (`"plugin":"dsh-chat-cost@0.6.7"`), поэтому запись можно проследить до выпустившего её релиза.
+После этого перезапустите хост: композиция профиля собирается при загрузке, поэтому работающий хост остаётся на той версии, с которой стартовал. Узнать, какой релиз работает, можно и без терминала — наведите на виджет, подсказка называет версию, и каждая запись лога несёт её в поле `plugin` (`"plugin":"dsh-chat-cost@0.6.8"`), поэтому запись можно проследить до выпустившего её релиза.
 
 ## Удаление и восстановление
 

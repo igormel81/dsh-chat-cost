@@ -7,6 +7,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![DeepSeek Harness plugin](https://img.shields.io/badge/DeepSeek%20Harness-plugin-blueviolet)](#安装)
 [![npm](https://img.shields.io/npm/v/dsh-chat-cost.svg)](https://www.npmjs.com/package/dsh-chat-cost)
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
 [![providers](https://img.shields.io/badge/providers-7%20%C2%B7%20139%20models-informational)](#计价规则)
 
 ![The readout in the composer: one line under the harness stats, the session priced from the cost log](https://raw.githubusercontent.com/igormel81/dsh-chat-cost/main/docs/readout.png)
@@ -73,7 +74,7 @@ dsh plugin --profile web add dsh-chat-cost
 ## 费用日志格式
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.7","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.8","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
 
 ## 写入了什么
@@ -182,7 +183,7 @@ dsh plugin --profile web update dsh-chat-cost       # 只在已声明的版本�
 | `update dsh-chat-cost` | 只在 `package.json` 已声明的范围内前移；若为精确锁定则什么都不做 |
 | `add dsh-chat-cost`（不带范围） | 重新解析并落到 `latest`；profile 丢失插件时也是这样装回来 |
 
-之后请重启宿主：profile 的组合是在启动时装配的，运行中的宿主会一直停留在启动时的版本。不打开终端也能知道运行的是哪个版本——悬停读数控件即可，提示中会写出该版本；而每条费用日志记录都在 `plugin` 字段里带着它（`"plugin":"dsh-chat-cost@0.6.7"`），因此一条账目可以追溯到写入它的那个发布。
+之后请重启宿主：profile 的组合是在启动时装配的，运行中的宿主会一直停留在启动时的版本。不打开终端也能知道运行的是哪个版本——悬停读数控件即可，提示中会写出该版本；而每条费用日志记录都在 `plugin` 字段里带着它（`"plugin":"dsh-chat-cost@0.6.8"`），因此一条账目可以追溯到写入它的那个发布。
 
 ## 卸载与恢复
 

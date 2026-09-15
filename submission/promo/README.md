@@ -7,7 +7,7 @@ Ready-to-use copy for the channels this plugin can be promoted on, in the langua
 | `awesome-pr.md` | pull request to `awesome-dsh-plugin/awesome-dsh-plugin` | English | **available now** — the repo passed one day old on 2026-09-13T18:14:28Z |
 | `plugin-store-issue.md` | issue in `Ericwong5021/deepseek-plugin-store` (1,732 plugins) | English | now |
 | `readme-screenshot.md` | the three READMEs, once a screenshot exists | en / zh / ru | before the launch posts |
-| `show-hn.md` | Hacker News, `Show HN` | English | after the awesome-list PR merges |
+| `show-hn.md` | Hacker News, `Show HN` | English | **ready** — the list merged on 2026-09-15 |
 | `reddit.md` | r/LocalLLaMA, r/DeepSeek, r/LLMDevs | English | same day as HN, spaced a few hours |
 | `x-thread.md` | X/Twitter | English | same day |
 | `telegram.md` | Russian DSH/AI chats and channels | Russian | same day |
