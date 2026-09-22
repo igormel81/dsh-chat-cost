@@ -91,7 +91,15 @@ Two kinds of provider call are billed and belong to no session's token usage:
 | Web search | the DeepSeek-backed search provider sends one request with a server-side `web_search` tool; the pages the model reads are billed to you, and the response's usage is never written into the session log | counts the calls it can see in a live session and says the figure is a floor |
 | A model call outside a turn | nothing in the session log describes it | nothing — the tooltip's totals are session totals and are named as such |
 
-On a search-heavy day those calls can be the larger part of the bill. Measured against a platform export (24 Aug – 22 Sep 2026): on days with no searches the session-side figure and the platform's agreed to within $0.05, and on days with hundreds the difference tracked the search count at roughly $0.002–0.006 per search.
+On a search-heavy day those calls can be the larger part of the bill. Measured against a platform export (24 Aug – 22 Sep 2026): on days with no searches the session-side figure and the platform's agreed to within $0.04, and on days with hundreds the difference tracked the search count at roughly $0.004 per search.
+
+`npm run reconcile` is that measurement, and it is reproducible:
+
+```sh
+node scripts/reconcile.mjs --export ~/Downloads/usage_data_2026-08-24_2026-09-22.zip
+```
+
+It reads the platform's export and this host's session logs, folds the logs with the same replace-not-add rule the harness's own token projection uses, prices the difference at the platform's own per-day rates, and prints it next to that day's web-search count. Before it reports anything it checks every session's fold against the harness's durable counters and refuses to accuse the platform when its own arithmetic disagrees — the failure mode a reconciliation tool is most likely to have.
 
 ## Cost log format
 
@@ -121,7 +129,7 @@ No account, no telemetry, no server. At runtime the plugin makes no outbound req
 ## Releasing
 
 ```sh
-npm test            # 148 tests; the schema checks need a DSH profile for the validator
+npm test            # 152 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public

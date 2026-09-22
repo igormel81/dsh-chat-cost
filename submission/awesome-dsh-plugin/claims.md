@@ -31,10 +31,11 @@ takes minutes instead of an afternoon: every claim in
 | a warning when spend belongs to no plan unit | `lib/log.js` — `UNLABELED_LABEL`; `lib/index.js` — `unlabeledUsd`; `lib/client.js` — the tooltip line |
 | six tools | `lib/tools.js` — `cost_price`, `cost_history`, `cost_estimate`, `cost_plan`, `cost_mark`, `cost_scenarios` |
 | the log directory is added to `.gitignore` inside a git work tree only | `lib/log.js` — `isGitWorkTree`, `ensureGitignore`; `test/logfile.test.mjs` |
+| a reconciliation against the platform's own usage export, self-checked | `scripts/reconcile.mjs`; `test/reconcile.test.mjs` fails if the fold contradicts the harness counters, and the tool exits 1 rather than blaming the platform |
 | no account, no telemetry, no outbound request at runtime | `lib/` contains no `fetch` and no URL except the loopback parser for incoming requests; the only network command is `scripts/build-prices.mjs`, a maintainer task |
 | English, Chinese and Russian documentation with a parity record | `README.md`, `README.zh.md`, `README.ru.md`, `README.i18n.yaml`; `test/docs.test.mjs` fails until the three agree |
 | the readout names the release that produced it | `lib/index.js` — `version: PLUGIN_VERSION` in the summary, `plugin: dsh-chat-cost@<version>` in every record; `lib/client.js` — the tooltip line |
-| tests | 148 of them, `npm test`; two suites report skips outside a DSH profile rather than passing silently |
+| tests | 152 of them, `npm test`; two suites report skips outside a DSH profile rather than passing silently |
 
 ## Limits stated in the same breath, not discovered later
 

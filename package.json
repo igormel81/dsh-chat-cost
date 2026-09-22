@@ -1,6 +1,6 @@
 {
   "name": "dsh-chat-cost",
-  "version": "0.6.9",
+  "version": "0.6.10",
   "description": "DeepSeek Harness (dsh) plugin: live token cost of every chat, its subagents and the whole session tree, the price of each finished answer in the transcript, budget planning that packs a work plan under a money limit, and scenario comparison that names which models are worth connecting — DeepSeek, OpenAI, Anthropic, Gemini, Kimi, Grok and Mistral prices from a bundled catalog, plus an append-only JSONL cost log in your project folder.",
   "keywords": [
     "anthropic",
@@ -90,7 +90,8 @@
     "test": "node --test test/*.test.mjs",
     "prices": "node scripts/build-prices.mjs",
     "prices:all": "node scripts/build-prices.mjs --all",
-    "prose": "node scripts/prose-check.mjs"
+    "prose": "node scripts/prose-check.mjs",
+    "reconcile": "node scripts/reconcile.mjs"
   },
   "repository": {
     "type": "git",
