@@ -20,7 +20,7 @@ English | [中文](README.zh.md) | [Русский](README.ru.md)
 
 Working end to end, and verified against a running host rather than only in tests: the bundled seven-provider catalog, the pricing engine (peak tiers, cache read and write rules), the Host half that walks the session tree, prices every session per interval and appends the JSONL cost log, per-turn pricing folded from the session's own events, the six budget tools (`cost_price`, `cost_history`, `cost_estimate`, `cost_plan`, `cost_mark`, `cost_scenarios`), and the client readout in English, Chinese and Russian — in the composer for the chat, and under every finished answer for that answer.
 
-Known limits, stated rather than hidden: only live sessions expose provider usage, so a persisted-only subagent session is listed without a price; a chat known only from the log has no turn boundaries, so it shows a total and no per-answer badges; long-context tier prices published for some Gemini and Grok models are not applied yet.
+Known limits, stated rather than hidden: the platform invoice can be higher than any session-based figure, because a web-search call runs its searches inside one request with a server-side tool and the pages it reads are billed to you without being part of the session's token usage — the readout counts those calls and names them rather than pretending to know their cost; a session that ended before the harness checkpointed its last turn (a host killed mid-turn) is priced from the newest checkpoint there is, so its final minutes may be missing; tokens read back from a checkpoint are charged at the tariff in force when they are read, and the record says `"basis":"durable"` so a catch-up is never mistaken for a watched interval; a child whose own log is gone is priced by the route it inherited from its tree, and `"modelSource":"inherited"` says so; a chat known only from the log has no turn boundaries, so it shows a total and no per-answer badges; long-context tier prices published for some Gemini and Grok models are not applied yet.
 
 ## Configuration
 
@@ -39,12 +39,13 @@ Known limits, stated rather than hidden: only live sessions expose provider usag
 - **Multi-provider prices.** A bundled snapshot of the [models.dev](https://models.dev) catalog covers seven providers — DeepSeek, Moonshot, OpenAI, Anthropic, Google, xAI, Mistral — and every priced model of each (139 models today).
 - **Honest arithmetic.** DeepSeek is priced from its own published table including peak and off-peak tiers; cache writes bill at each provider's own cache-write price where one exists (Anthropic, OpenAI) and at the input price otherwise; a model with no price shows `—` rather than an invented number.
 - **Breakdown by chat, subagents and session tree.** The hover tooltip separates this chat from its subagents and shows the tree total, the token buckets and the models involved.
+- **Subagents are counted, including the ones that already finished.** The tree is the union of the query engine's trace, the live session store and session persistence, and usage for a session this host no longer runs comes from the harness's own durable projection checkpoint — the same counters the harness would restore it with. A released subagent is the normal case, not an edge one: a chat whose children were invisible is not a cheap chat, it is an unmeasured one.
 - **Cost log in the project folder.** `<project>/.dsh-cost/cost.jsonl`, one JSON object per session per flush, with the tree position, four token buckets, cumulative and delta cost, and the pricing source. Inside a git work tree, `.dsh-cost/` is added to the project `.gitignore` on first write; a plain folder is left untouched — the log is welcome there, clutter is not.
 - **Interval pricing.** The JSONL log is the base: every flush prices only the tokens that arrived since the previous record, at the tariff in effect at that moment, so a chat that crosses a DeepSeek peak boundary keeps the price it was really billed at instead of being re-priced retroactively.
 - **Bounded, cached reads.** A summary reads only the tail of the log (`ledgerTailBytes`, 2 MiB by default) and reuses the cached read while the file's size and mtime are unchanged; when the tail starts mid-file the plugin reports `truncated` and `skippedBytes` instead of pretending to know the whole history.
 - **Nothing is quietly unaccounted.** Spend that belongs to no plan unit is named in the tooltip (`$1.230 is not attributed to any plan unit`) rather than folded into a total.
 - **The price of each answer, under the answer.** Every finished turn gets its own cost in the transcript, priced from that turn's own usage events rather than sliced out of the session total, and refreshed the moment the turn closes. The composer readout shares one poll with those badges, so a finished answer updates both at once.
-- **Every chat, open or not.** A chat that is not currently open has no live session, so the readout prices it from the cost log and labels the number as recorded; a chat the log has never seen shows `—` with the reason instead of disappearing. Opening it makes it live, prices it exactly, and writes the missing record.
+- **Every chat, open or not.** A chat that is not currently open has no live session, so the readout prices it — and its subagents — from the harness's durable checkpoint and from the cost log, and labels the number as recorded. A session neither of those knows stays `—` with the reason instead of disappearing. Opening it makes it live, prices it exactly, and writes the missing record.
 - **Three languages.** English, Chinese and Russian, chosen from the plugin config, then the harness locale, then the browser language.
 
 ## Install
@@ -71,11 +72,34 @@ The package is a DSH bundle: the profile reconciles its patch layer automaticall
 
 The summary is built ledger-first: recorded deltas are summed from the log file, and only the tokens that arrived after the last record are priced at the current tariff. A chat that spans a peak boundary therefore shows what it really cost, not a retroactive double.
 
+Each session in the tree says where its figure came from, so no source is passed off as another:
+
+| `basis` | Read from | Priced at |
+| --- | --- | --- |
+| `live` | the running session's usage projection | the tariff in force now, minus what the log already recorded |
+| `durable` | the harness's durable checkpoint of a session that ended | the tariff in force now, minus what the log already recorded |
+| `log` | this plugin's cost log alone | what the log already recorded; no new tokens are priced |
+
+And `modelSource` says how the route was learned: `session` from the session's own last request header, `inherited` from the tree it belongs to when the session is gone and only its counters survived.
+
+### What the invoice adds that no session holds
+
+Two kinds of provider call are billed and belong to no session's token usage:
+
+| Call | Why it is invisible | What the readout does |
+| --- | --- | --- |
+| Web search | the DeepSeek-backed search provider sends one request with a server-side `web_search` tool; the pages the model reads are billed to you, and the response's usage is never written into the session log | counts the calls it can see in a live session and says the figure is a floor |
+| A model call outside a turn | nothing in the session log describes it | nothing — the tooltip's totals are session totals and are named as such |
+
+On a search-heavy day those calls can be the larger part of the bill. Measured against a platform export (24 Aug – 22 Sep 2026): on days with no searches the session-side figure and the platform's agreed to within $0.05, and on days with hundreds the difference tracked the search count at roughly $0.002–0.006 per search.
+
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.8","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.9","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","modelSource":"session","basis":"live","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
 ```
+
+A record with `"basis":"durable"` is a catch-up: the session was already over when its tokens were read back, so its delta is the part of its history this log had not seen yet.
 
 ## What it writes
 
@@ -97,7 +121,7 @@ No account, no telemetry, no server. At runtime the plugin makes no outbound req
 ## Releasing
 
 ```sh
-npm test            # 142 tests; the schema checks need a DSH profile for the validator
+npm test            # 148 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public
@@ -183,7 +207,7 @@ dsh plugin --profile web update dsh-chat-cost       # within the declared range 
 | `update dsh-chat-cost` | moves only inside the range already declared in `package.json`; with an exact pin it does nothing |
 | `add dsh-chat-cost` (no range) | resolves fresh and lands on `latest`; this is what re-installs the plugin if the profile lost it |
 
-Restart the host afterwards: the profile's composition is assembled at boot, so a running host keeps the version it started with. To see which release is running without a terminal, hover the readout — the tooltip names it, and every cost-log record carries it in its `plugin` field (`"plugin":"dsh-chat-cost@0.6.8"`), which is how a ledger entry can be traced back to the release that wrote it.
+Restart the host afterwards: the profile's composition is assembled at boot, so a running host keeps the version it started with. To see which release is running without a terminal, hover the readout — the tooltip names it, and every cost-log record carries it in its `plugin` field (`"plugin":"dsh-chat-cost@0.6.9"`), which is how a ledger entry can be traced back to the release that wrote it.
 
 ## Uninstall and recovery
 

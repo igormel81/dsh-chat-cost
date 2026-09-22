@@ -278,7 +278,43 @@ test('numbers taken from the log are labelled as such', async () => {
   const node = render({ sessionId: 'past', useProjection: () => usage }) ?? first
 
   assert.match(node.children.join(''), /≈ \$1\.500/, 'the logged total is shown')
-  assert.match(node.props.title, /what the cost log recorded/, 'and the tooltip says where it comes from')
+  assert.match(node.props.title, /durable record and this plugin's cost log/, 'and the tooltip says where it comes from')
+})
+
+test('a session priced from the durable record is named in the tooltip, with its inherited route', async () => {
+  const replayed = {
+    ...summary,
+    sessions: [
+      { sessionId: 'root', model: 'deepseek-flash', modelSource: 'session', basis: 'live', usd: 0.2, live: true },
+      { sessionId: 'gone', model: 'deepseek-flash', modelSource: 'inherited', basis: 'durable', usd: 1.3, live: false }
+    ],
+    totals: { usd: 1.5, chatUsd: 0.2, subagentUsd: 1.3, subagentCount: 1, unpricedSessions: [] }
+  }
+  const { render } = loadBundle({ fetchImpl: respondWith(replayed) })
+  const first = render({ sessionId: 'root', useProjection: () => usage })
+  await new Promise((resolve) => setImmediate(resolve))
+  const node = render({ sessionId: 'root', useProjection: () => usage }) ?? first
+
+  assert.match(node.props.title, /1 session\(s\) here are over/, 'a catch-up is not passed off as a live read')
+  assert.match(node.props.title, /inherited from the tree/, 'and an inherited route is named as inherited')
+})
+
+test('a figure that is only a floor says so, and names the calls above it', async () => {
+  const withSearches = { ...summary, searchCalls: 615 }
+  const { render } = loadBundle({ fetchImpl: respondWith(withSearches) })
+  const first = render({ sessionId: 'root', useProjection: () => usage })
+  await new Promise((resolve) => setImmediate(resolve))
+  const node = render({ sessionId: 'root', useProjection: () => usage }) ?? first
+
+  assert.match(node.props.title, /615 web-search LLM call\(s\)/, 'the count is named')
+  assert.match(node.props.title, /platform invoice is higher/, 'and what it means for the invoice')
+
+  const silent = { ...summary, searchCalls: 0 }
+  const without = loadBundle({ fetchImpl: respondWith(silent) })
+  const firstPlain = without.render({ sessionId: 'root', useProjection: () => usage })
+  await new Promise((resolve) => setImmediate(resolve))
+  const plain = without.render({ sessionId: 'root', useProjection: () => usage }) ?? firstPlain
+  assert.doesNotMatch(plain.props.title, /web-search LLM call/, 'nothing is said when there is nothing to say')
 })
 
 test('the cost of one answer is registered for the turn tail, with the selector the slot requires', () => {

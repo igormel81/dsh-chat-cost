@@ -20,13 +20,15 @@ function session({ id, cwd, parent = undefined, provider = 'deepseek-official', 
   }
 }
 
-function context({ sessions, query, projections = true }) {
+function context({ sessions, query, projections = true, projectionCache, persistence }) {
   const byId = new Map(sessions.map((entry) => [entry.id, entry]))
   return {
     get(name) {
       if (name === 'sessions') return { get: (id) => byId.get(id), list: () => [...byId.values()] }
       if (name === 'sessionProjections') return projections ? { stateOf: (entry, key) => (key === 'tokenUsage' ? entry.usage : null) } : undefined
       if (name === 'sessionQuery') return query
+      if (name === 'sessionProjectionCache') return projectionCache
+      if (name === 'sessionPersistence') return persistence
       return undefined
     }
   }
@@ -102,17 +104,103 @@ test('an unchanged tree writes nothing, a changed session appends only its delta
   assert.ok(Math.abs(last.cumulativeUsd - 0.3) < 1e-9)
 })
 
-test('a persisted-only child is reported unpriced instead of estimated', async () => {
+test('a released subagent is priced from the harness checkpoint, not dropped and not zero', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
+  const root = session({ id: 'root', cwd: project, usage: { uncachedInputTokens: 1000 } })
+  // The real corpus shape: a nested descendant whose header is all that is left
+  // of the child — the session itself has been released.
+  const childHeader = { id: 'cold-1', cwd: project, parentSession: 'root', origin: 'subagent', createdAt: 2 }
+  const query = {
+    traceSession: async () => ({
+      target: { header: { id: 'root', cwd: project, createdAt: 1 } },
+      root: { header: { id: 'root', cwd: project, createdAt: 1 } },
+      descendants: [{ session: { header: childHeader }, descendants: [] }],
+      complete: true
+    })
+  }
+  // The harness checkpoints every session's counters durably; this is that read.
+  const durable = {
+    uncachedInputTokens: 0,
+    cacheReadTokens: 60000000,
+    cacheWriteTokens: 0,
+    outputTokens: 1000000
+  }
+  const reads = []
+  const ctx = context({
+    sessions: [root],
+    query,
+    projectionCache: {
+      cachedSnapshot: (header) => {
+        reads.push(header.id)
+        return header.id === 'cold-1' ? { values: { tokenUsage: durable } } : undefined
+      }
+    }
+  })
+
+  const summary = await summaryAt(ctx, settings, __createState(), 'root')
+  const child = summary.subagents[0]
+
+  assert.deepEqual(reads, ['cold-1'], 'the durable row is read for the child that is gone')
+  assert.equal(summary.totals.subagentCount, 1)
+  assert.equal(child.basis, 'durable')
+  assert.equal(child.live, false)
+  assert.equal(child.modelSource, 'inherited', 'the route comes from the tree, and says so')
+  assert.equal(child.totalTokens, 61000000, 'the subagent tokens are counted, not dropped')
+  // DeepSeek flash off-peak: 60M cache reads at 0.003 and 1M output at 0.6.
+  assert.ok(Math.abs(child.usd - (0.18 + 0.6)) < 1e-9, `child usd ${child.usd}`)
+  assert.ok(summary.totals.subagentUsd > 0, 'and they reach the subagent total')
+
+  const records = (await readFile(summary.logPath, 'utf8')).trim().split('\n').map((line) => JSON.parse(line))
+  const childRecord = records.find((record) => record.sessionId === 'cold-1')
+  assert.equal(childRecord.kind, 'subagent')
+  assert.equal(childRecord.basis, 'durable')
+  assert.equal(childRecord.parentSessionId, 'root')
+  assert.equal(childRecord.deltaTotalTokens, 61000000)
+  assert.equal(childRecord.tier, 'off-peak', 'a tariff is named for the catch-up')
+})
+
+test('a catch-up is recorded once: the next poll finds nothing new to write', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
+  const root = session({ id: 'root', cwd: project, usage: { uncachedInputTokens: 1000 } })
+  const query = {
+    traceSession: async () => ({
+      target: { header: { id: 'root', cwd: project } },
+      root: { header: { id: 'root', cwd: project } },
+      descendants: [{ session: { header: { id: 'cold-1', cwd: project, parentSession: 'root' } }, descendants: [] }],
+      complete: true
+    })
+  }
+  const ctx = context({
+    sessions: [root],
+    query,
+    projectionCache: { cachedSnapshot: () => ({ values: { tokenUsage: { cacheReadTokens: 5000000 } } }) }
+  })
+  const state = __createState()
+
+  const first = await summaryAt(ctx, settings, state, 'root')
+  const lines = (await readFile(first.logPath, 'utf8')).trim().split('\n')
+  assert.equal(lines.length, 2, 'the chat and the subagent are both in the ledger')
+
+  const second = await summaryAt(ctx, settings, state, 'root')
+  assert.equal((await readFile(second.logPath, 'utf8')).trim().split('\n').length, 2, 'no second copy of the same tokens')
+  assert.equal(second.subagents[0].usd, first.subagents[0].usd, 'and the figure holds still')
+})
+
+test('a session with no durable counters stays described by the log, never by a zero', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 1000000 } })
   const query = {
     traceSession: async () => ({ root: 'root', complete: true, descendants: [{ sessionId: 'cold-1', parentId: 'root', depth: 1 }] })
   }
-  const summary = await summaryAt(context({ sessions: [root], query }), settings, __createState(), 'root')
+  // A checkpoint service that knows nothing about this child: the honest answer
+  // is "unknown", and a zero would be a number nobody measured.
+  const ctx = context({ sessions: [root], query, projectionCache: { cachedSnapshot: () => undefined } })
+  const summary = await summaryAt(ctx, settings, __createState(), 'root')
 
   assert.equal(summary.totals.sessions, 2)
   assert.deepEqual(summary.totals.unpricedSessions, ['cold-1'])
   assert.equal(summary.subagents[0].live, false)
+  assert.equal(summary.subagents[0].basis, 'log')
   assert.equal(summary.subagents[0].usd, null)
   assert.ok(Math.abs(summary.totals.usd - summary.sessions[0].usd) < 1e-9, 'totals cover only priced sessions')
   const records = (await readFile(summary.logPath, 'utf8')).trim().split('\n').map((line) => JSON.parse(line))
@@ -164,11 +252,59 @@ test('the tree walk falls back to the live store when no query engine is mounted
   const tree = await __collectTree(ctx, 'root', AbortSignal.timeout(1000))
   assert.deepEqual(tree.ids, ['root', 'child', 'grandchild'])
   assert.equal(tree.parents.get('grandchild'), 'child')
-  assert.equal(tree.complete, true)
+  // The live store holds the sessions this host runs and nothing else: a child
+  // that already finished is not in it, so a tree read from here is a lower bound.
+  assert.equal(tree.complete, false, 'a live-only walk cannot claim the whole tree')
 
   const withoutStore = await __collectTree({ get: () => undefined }, 'root', AbortSignal.timeout(1000))
   assert.deepEqual(withoutStore.ids, ['root'])
   assert.equal(withoutStore.complete, false)
+})
+
+test('the tree walk unions the trace with the live store and session persistence', async () => {
+  // The query engine answers in its own shape: nodes wrap a whole session record,
+  // and a grandchild is nested inside its parent's node. A walk that reads only
+  // `id`/`sessionId` at the first level sees the chat and drops every child, which
+  // is exactly how a subagent tree goes unbilled while the answer claims to be whole.
+  const traced = {
+    session: { header: { id: 'child', cwd: '/tmp', parentSession: 'root', createdAt: 2 } },
+    descendants: [
+      { session: { header: { id: 'grandchild', cwd: '/tmp', parentSession: 'child', createdAt: 3 } }, descendants: [] }
+    ]
+  }
+  const query = {
+    traceSession: async () => ({
+      target: { header: { id: 'root', cwd: '/tmp', createdAt: 1 } },
+      root: { header: { id: 'root', cwd: '/tmp', createdAt: 1 } },
+      descendants: [traced],
+      complete: true
+    })
+  }
+  const ctx = context({ sessions: [], query })
+  const tree = await __collectTree(ctx, 'root', AbortSignal.timeout(1000))
+
+  assert.deepEqual(tree.ids.sort(), ['child', 'grandchild', 'root'])
+  assert.equal(tree.parents.get('child'), 'root')
+  assert.equal(tree.parents.get('grandchild'), 'child', 'a nested descendant keeps its own parent')
+  assert.equal(tree.headers.get('grandchild').parentSession, 'child', 'cold headers travel with the walk')
+  assert.equal(tree.complete, true)
+  assert.equal(tree.workspace, '/tmp')
+
+  // A child created after the corpus was read is live here and unknown there.
+  const liveOnly = session({ id: 'fresh', parent: 'root' })
+  const both = await __collectTree(context({ sessions: [liveOnly], query }), 'root', AbortSignal.timeout(1000))
+  assert.ok(both.ids.includes('fresh'), 'the live store still contributes its own children')
+
+  // Without the query engine, persistence is the corpus of closed sessions.
+  const persistence = {
+    list: async () => [
+      { id: 'root', cwd: '/tmp', createdAt: 1 },
+      { id: 'child', cwd: '/tmp', parentSession: 'root', createdAt: 2 }
+    ]
+  }
+  const durable = await __collectTree({ get: (name) => (name === 'sessionPersistence' ? persistence : undefined) }, 'root', AbortSignal.timeout(1000))
+  assert.deepEqual(durable.ids.sort(), ['child', 'root'])
+  assert.equal(durable.complete, true, 'persistence holds the sessions that already ended')
 })
 
 test('model attribution reads the newest request header', () => {
@@ -383,6 +519,26 @@ test('the summary carries a price per turn, so an answer can show its own cost',
   assert.equal(summary.turns[0].pricingSource, 'official')
   assert.equal(summary.turns[0].tier, 'off-peak')
   assert.equal(summary.turns[0].tokens, 1000000)
+})
+
+test('provider calls the session does not carry are counted and named', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-search-'))
+  const root = session({ id: 'root', cwd: project, usage: { outputTokens: 100 } })
+  root.events = [
+    ...root.events,
+    { type: 'web/deepseek-search-llm-request', data: { endpoint: 'https://api.deepseek.com/anthropic/v1/messages' } },
+    { type: 'web/deepseek-search-llm-request', data: { endpoint: 'https://api.deepseek.com/anthropic/v1/messages' } }
+  ]
+  const summary = await summaryAt(context({ sessions: [root] }), settings, __createState(), 'root')
+  assert.equal(summary.searchCalls, 2, 'the readout says the figure is a floor')
+
+  // A chat that is closed has no events to count, and zero would be a claim.
+  const past = context({
+    sessions: [],
+    query: { traceSession: async () => ({ target: { header: { id: 'past', cwd: project } }, root: { header: { id: 'past', cwd: project } }, descendants: [], complete: true }) }
+  })
+  const closed = await summaryAt(past, settings, __createState(), 'past')
+  assert.equal(closed.searchCalls, null)
 })
 
 test('a chat priced from the log has no per-turn numbers to offer', async () => {
