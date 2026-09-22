@@ -35,7 +35,7 @@ takes minutes instead of an afternoon: every claim in
 | no account, no telemetry, no outbound request at runtime | `lib/` contains no `fetch` and no URL except the loopback parser for incoming requests; the only network command is `scripts/build-prices.mjs`, a maintainer task |
 | English, Chinese and Russian documentation with a parity record | `README.md`, `README.zh.md`, `README.ru.md`, `README.i18n.yaml`; `test/docs.test.mjs` fails until the three agree |
 | the readout names the release that produced it | `lib/index.js` — `version: PLUGIN_VERSION` in the summary, `plugin: dsh-chat-cost@<version>` in every record; `lib/client.js` — the tooltip line |
-| tests | 152 of them, `npm test`; two suites report skips outside a DSH profile rather than passing silently |
+| tests | 153 of them, `npm test`; two suites report skips outside a DSH profile rather than passing silently |
 
 ## Limits stated in the same breath, not discovered later
 

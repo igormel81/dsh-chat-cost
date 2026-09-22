@@ -541,6 +541,53 @@ test('provider calls the session does not carry are counted and named', async ()
   assert.equal(closed.searchCalls, null)
 })
 
+test('a closed chat still prices its children, from the route its own log recorded', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'dsh-cost-cold-tree-'))
+  // The ledger holds what this plugin wrote while the chat was open: the chat
+  // itself and its route. The children were never recorded, and their sessions
+  // are gone, so the ledger is the only statement about the route they ran under.
+  await appendCostLog(project, [
+    costRecord({
+      sessionId: 'past',
+      rootSessionId: 'past',
+      depth: 0,
+      kind: 'chat',
+      provider: 'deepseek-official',
+      model: 'deepseek-flash',
+      pricingSource: 'official',
+      tier: 'off-peak',
+      usage: { uncachedInputTokens: 1000000 },
+      cumulativeUsd: 0.15,
+      deltaUsd: 0.15
+    })
+  ])
+  const query = {
+    traceSession: async () => ({
+      target: { header: { id: 'past', cwd: project } },
+      root: { header: { id: 'past', cwd: project } },
+      descendants: [{ session: { header: { id: 'cold-child', cwd: project, parentSession: 'past', origin: 'subagent' } }, descendants: [] }],
+      complete: true
+    })
+  }
+  const ctx = context({
+    sessions: [],
+    query,
+    projectionCache: { cachedSnapshot: (header) => (header.id === 'cold-child' ? { values: { tokenUsage: { outputTokens: 1000000 } } } : undefined) }
+  })
+  const summary = await summaryAt(ctx, settings, __createState(), 'past')
+  const child = summary.subagents[0]
+
+  assert.equal(summary.recorded, true)
+  assert.equal(child.sessionId, 'cold-child')
+  assert.equal(child.basis, 'durable')
+  assert.equal(child.modelSource, 'inherited')
+  assert.equal(child.model, 'deepseek-flash', 'the tree route comes from the log, not from a live session')
+  // Off-peak flash output: 1M at 0.6 per million.
+  assert.ok(Math.abs(child.usd - 0.6) < 1e-9, `child usd ${child.usd}`)
+  assert.ok(summary.totals.subagentUsd > 0)
+  assert.deepEqual(summary.totals.unpricedSessions, [])
+})
+
 test('a chat priced from the log has no per-turn numbers to offer', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-turns-recorded-'))
   await appendCostLog(project, [

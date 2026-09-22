@@ -129,7 +129,7 @@ No account, no telemetry, no server. At runtime the plugin makes no outbound req
 ## Releasing
 
 ```sh
-npm test            # 152 tests; the schema checks need a DSH profile for the validator
+npm test            # 153 tests; the schema checks need a DSH profile for the validator
 npm run prices      # refresh the bundled catalog before a release
 npm version minor
 npm publish --access public

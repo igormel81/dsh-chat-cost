@@ -129,7 +129,7 @@ node scripts/reconcile.mjs --export ~/Downloads/usage_data_2026-08-24_2026-09-22
 ## 发布流程
 
 ```sh
-npm test            # 152 项测试；schema 检查需要 DSH profile 提供校验器
+npm test            # 153 项测试；schema 检查需要 DSH profile 提供校验器
 npm run prices      # 发布前刷新内置价格目录
 npm version minor
 npm publish --access public

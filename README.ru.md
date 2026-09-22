@@ -129,7 +129,7 @@ node scripts/reconcile.mjs --export ~/Downloads/usage_data_2026-08-24_2026-09-22
 ## Выпуск версии
 
 ```sh
-npm test            # 152 тестов; проверки схем требуют профиля DSH с валидатором
+npm test            # 153 тестов; проверки схем требуют профиля DSH с валидатором
 npm run prices      # обновить встроенный каталог цен перед выпуском
 npm version minor
 npm publish --access public
