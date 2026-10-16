@@ -10,14 +10,15 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile, mkdtemp } from 'node:fs/promises'
+import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildTools } from '../lib/tools.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const catalog = JSON.parse(await readFile(join(root, 'data', 'prices.json'), 'utf8'))
+const { catalog: catalogOf } = await import('../lib/rates.js')
+const catalog = catalogOf()
 
 let sdk = null
 try {

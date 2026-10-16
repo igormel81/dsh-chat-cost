@@ -191,23 +191,23 @@ test('the readout carries the tree total and the budget, and the tooltip names t
   const node = second ?? first
   assert.ok(node !== null, 'the widget renders once the summary arrives')
   assert.equal(node.type, 'span')
-  assert.match(node.children.join(''), /≈ \$0\.1650/, 'the tree total is the headline')
-  assert.match(node.children.join(''), /\/ \$25\.000/, 'and the budget is beside it')
+  assert.match(node.children.join(''), /≈ ¥0\.1650/, 'the tree total is the headline')
+  assert.match(node.children.join(''), /\/ ¥25\.000/, 'and the budget is beside it')
 
   const tip = node.props.title
-  assert.match(tip, /session tree total: \$0\.1650/)
-  assert.match(tip, /subagents \(1\): \$0\.0150/)
-  assert.match(tip, /this chat: \$0\.1500/)
-  assert.match(tip, /budget: \$0\.1650 of \$25\.000/)
+  assert.match(tip, /session tree total: ¥0\.1650/)
+  assert.match(tip, /subagents \(1\): ¥0\.0150/)
+  assert.match(tip, /this chat: ¥0\.1500/)
+  assert.match(tip, /budget: ¥0\.1650 of ¥25\.000/)
   assert.match(tip, /plan: 2 unit\(s\)/)
-  assert.match(tip, /Market research \(deepseek-flash\): \$2\.100 planned, \$1\.840 actual/)
+  assert.match(tip, /Market research \(deepseek-flash\): ¥2\.100 planned, ¥1\.840 actual/)
   assert.match(tip, /1 unit\(s\) did not fit the budget/)
-  assert.match(tip, /scenarios: economy \$0\.2600 · balanced \$5\.930 · quality \$7\.420/)
-  assert.match(tip, /cheapest adequate routing saves \$7\.160/)
+  assert.match(tip, /scenarios: economy ¥0\.2600 · balanced ¥5\.930 · quality ¥7\.420/)
+  assert.match(tip, /cheapest adequate routing saves ¥7\.160/)
   assert.match(tip, /cost log: \/tmp\/project\/\.dsh-cost\/cost\.jsonl/)
   assert.match(tip, /dsh-chat-cost 0\.6\.5/, 'the tooltip says which release answered')
-  assert.match(tip, /\$1\.230 is not attributed to any plan unit/, 'unclaimed spend is called out')
-  assert.match(tip, /\u00b7 synthesis \(kimi-k3 \u2192 gemini-2\.5-flash-lite\): \$5\.670 planned/, 'route objects print as model names, never as [object Object]')
+  assert.match(tip, /¥1\.230 is not attributed to any plan unit/, 'unclaimed spend is called out')
+  assert.match(tip, /\u00b7 synthesis \(kimi-k3 \u2192 gemini-2\.5-flash-lite\): ¥5\.670 planned/, 'route objects print as model names, never as [object Object]')
 })
 
 test('an over-budget projection is stated in the tooltip', async () => {
@@ -216,7 +216,7 @@ test('an over-budget projection is stated in the tooltip', async () => {
   render({ sessionId: 'root', useProjection: () => usage })
   await new Promise((resolve) => setImmediate(resolve))
   const node = render({ sessionId: 'root', useProjection: () => usage })
-  assert.match(node.props.title, /over budget by \$2\.500/)
+  assert.match(node.props.title, /over budget by ¥2\.500/)
 })
 
 test('the interface speaks English, Chinese or Russian with equal content', async () => {
@@ -227,7 +227,7 @@ test('the interface speaks English, Chinese or Russian with equal content', asyn
   assert.match(zhNode.props.title, /token 费用估算/)
   assert.match(zhNode.props.title, /预算：/)
   assert.match(zhNode.props.title, /方案：/)
-  assert.match(zhNode.props.title, /\$1\.230 未归入任何计划单元/)
+  assert.match(zhNode.props.title, /¥1\.230 未归入任何计划单元/)
 
   const russian = loadBundle({ navigatorLanguage: 'ru-RU', fetchImpl: respondWith(summary) })
   russian.render({ sessionId: 'root', useProjection: () => usage })
@@ -236,7 +236,7 @@ test('the interface speaks English, Chinese or Russian with equal content', asyn
   assert.match(ruNode.props.title, /Стоимость токенов/)
   assert.match(ruNode.props.title, /бюджет:/)
   assert.match(ruNode.props.title, /сценарии:/)
-  assert.match(ruNode.props.title, /\$1\.230 не отнесено ни к одному пункту плана/)
+  assert.match(ruNode.props.title, /¥1\.230 не отнесено ни к одному пункту плана/)
 })
 
 test('a Host that does not answer degrades to tokens and says so', async () => {
@@ -277,7 +277,7 @@ test('numbers taken from the log are labelled as such', async () => {
   await new Promise((resolve) => setImmediate(resolve))
   const node = render({ sessionId: 'past', useProjection: () => usage }) ?? first
 
-  assert.match(node.children.join(''), /≈ \$1\.500/, 'the logged total is shown')
+  assert.match(node.children.join(''), /≈ ¥1\.500/, 'the logged total is shown')
   assert.match(node.props.title, /durable record and this plugin's cost log/, 'and the tooltip says where it comes from')
 })
 
@@ -331,8 +331,8 @@ test('each answer carries its own cost, taken from the Host turn by turn', async
   const withTurns = {
     ...summary,
     turns: [
-      { turn: 1, tokens: 1200, usd: 0.0012, provider: 'deepseek-official', model: 'deepseek-flash', pricingSource: 'official', tier: 'off-peak' },
-      { turn: 2, tokens: 900, usd: 0.0009, provider: 'deepseek-official', model: 'deepseek-flash', pricingSource: 'official', tier: 'off-peak' }
+      { turn: 1, tokens: 1200, usd: 0.0012, provider: 'deepseek-official', model: 'deepseek-flash', pricingSource: 'table', tier: 'off-peak' },
+      { turn: 2, tokens: 900, usd: 0.0009, provider: 'deepseek-official', model: 'deepseek-flash', pricingSource: 'table', tier: 'off-peak' }
     ]
   }
   const { renderSlot } = loadBundle({ fetchImpl: respondWith(withTurns) })
@@ -344,7 +344,7 @@ test('each answer carries its own cost, taken from the Host turn by turn', async
   const node = badge(props)
 
   assert.ok(node !== null, 'the badge renders once the summary arrives')
-  assert.match(node.children.join(''), /≈ \$0\.0009/, 'and shows the turn it was given, not the session total')
+  assert.match(node.children.join(''), /≈ ¥0\.0009/, 'and shows the turn it was given, not the session total')
   assert.match(node.props.title, /Cost of this answer/)
   assert.match(node.props.title, /deepseek-flash/)
   assert.match(node.props.title, /900 tokens/)
@@ -359,7 +359,7 @@ test('an answer the Host has no price for stays quiet instead of guessing', asyn
   await new Promise((resolve) => setImmediate(resolve))
   const unpriced = badge({ sessionId: 'root', matched: { turn: 1 } })
   assert.equal(unpriced.props.className, 'dsh-chat-cost dsh-chat-cost--muted')
-  assert.match(unpriced.props.title, /no price in the catalog/)
+  assert.match(unpriced.props.title, /price table unknown/)
 
   // A turn the Host never mentions renders nothing, but not silently forever:
   // the badge asks again, because the answer may simply not have reached the

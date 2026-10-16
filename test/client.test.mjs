@@ -102,10 +102,10 @@ test('language resolution prefers plugin config, then harness locale, then brows
 })
 
 test('cost formatting stays readable across magnitudes', () => {
-  assert.equal(bundle.__formatUsd(0.0000123), '0.00001')
-  assert.equal(bundle.__formatUsd(0.0163), '0.0163')
-  assert.equal(bundle.__formatUsd(2.5), '2.500')
-  assert.equal(bundle.__formatUsd(123.456), '123.46')
-  assert.equal(bundle.__formatUsd(null), null)
-  assert.equal(bundle.__formatUsd(NaN), null)
+  assert.equal(bundle.__formatMoney(0.0000123), '0.00001')
+  assert.equal(bundle.__formatMoney(0.0163), '0.0163')
+  assert.equal(bundle.__formatMoney(2.5), '2.500')
+  assert.equal(bundle.__formatMoney(123.456), '123.46')
+  assert.equal(bundle.__formatMoney(null), null)
+  assert.equal(bundle.__formatMoney(NaN), null)
 })

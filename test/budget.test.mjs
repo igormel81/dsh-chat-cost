@@ -4,12 +4,12 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { DEFAULT_BUFFER_RATIO, burnRate, estimateUnit, packPlan, percentile, unitTokens } from '../lib/budget.js'
 
-const catalog = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'prices.json'), 'utf8'))
+// The rate table is the only price source now, so the fixture comes from the
+// module rather than from a snapshot file that no longer exists.
+const { catalog: catalogOf } = await import('../lib/rates.js')
+const catalog = catalogOf()
 
 test('percentiles use the nearest rank and survive empty input', () => {
   assert.equal(percentile([3, 1, 2], 0.5), 2)
@@ -45,7 +45,7 @@ test('an explicit cache share re-splits the input, and only when asked', () => {
     label: 'x', tokens: { input: 1000000, output: 0 },
     routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }]
   }, [], catalogLocal)
-  assert.equal(withoutShare.p50Usd, 0.15, 'all input billed at the input price')
+  assert.equal(withoutShare.p50Usd, 1, 'all input billed at the input price, in yuan')
 
   const withShare = estimateUnit({
     label: 'x', tokens: { input: 1000000, output: 0 }, cacheReadShare: 0.5,
@@ -75,9 +75,11 @@ test('an unpriceable route is reported instead of priced as zero', () => {
 })
 
 test('packing holds back the reserve, packs by priority and defers what does not fit', () => {
+  // Both units are on priced routes: a route outside the rate table has no
+  // estimate at all, which would make "does not fit" untestable rather than false.
   const units = [
     { label: 'cheap', priority: 1, scenario: 'lean', routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] },
-    { label: 'expensive', priority: 5, scenario: 'deep', routes: [{ provider: 'moonshot', model: 'kimi-k3' }] }
+    { label: 'expensive', priority: 5, scenario: 'deep', routes: [{ provider: 'deepseek-official', model: 'deepseek-v4-pro' }] }
   ]
   const roomy = packPlan({ units, budgetUsd: 100, catalog })
   assert.equal(roomy.reserveUsd, 100 * DEFAULT_BUFFER_RATIO)
@@ -106,7 +108,7 @@ test('packing a cheaper route when the preferred one does not fit', () => {
     priority: 1,
     scenario: 'normal',
     routes: [
-      { provider: 'moonshot', model: 'kimi-k3' },
+      { provider: 'deepseek-official', model: 'deepseek-v4-pro' },
       { provider: 'deepseek-official', model: 'deepseek-flash' }
     ]
   }]

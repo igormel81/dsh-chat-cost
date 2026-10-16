@@ -18,7 +18,7 @@ English | [中文](README.zh.md) | [Русский](README.ru.md)
 
 ## Status
 
-Working end to end, and verified against a running host rather than only in tests: the bundled seven-provider catalog, the pricing engine (peak tiers, cache read and write rules), the Host half that walks the session tree, prices every session per interval and appends the JSONL cost log, per-turn pricing folded from the session's own events, the six budget tools (`cost_price`, `cost_history`, `cost_estimate`, `cost_plan`, `cost_mark`, `cost_scenarios`), and the client readout in English, Chinese and Russian — in the composer for the chat, and under every finished answer for that answer.
+Working end to end, and verified against a running host rather than only in tests: DeepSeek's own CNY rate card, fetched once as the host starts, the pricing engine (peak tiers read at each turn's own time, cache read and write rules), the Host half that walks the session tree, prices every session per interval and appends the JSONL cost log, per-turn pricing folded from the session's own events, the six budget tools (`cost_price`, `cost_history`, `cost_estimate`, `cost_plan`, `cost_mark`, `cost_scenarios`), and the client readout in English, Chinese and Russian — in the composer for the chat, and under every finished answer for that answer.
 
 Known limits, stated rather than hidden: the platform invoice can be higher than any session-based figure, because a web-search call runs its searches inside one request with a server-side tool and the pages it reads are billed to you without being part of the session's token usage — the readout counts those calls and names them rather than pretending to know their cost; a session that ended before the harness checkpointed its last turn (a host killed mid-turn) is priced from the newest checkpoint there is, so its final minutes may be missing; tokens read back from a checkpoint are charged at the tariff in force when they are read, and the record says `"basis":"durable"` so a catch-up is never mistaken for a watched interval; a child whose own log is gone is priced by the route it inherited from its tree, and `"modelSource":"inherited"` says so; a chat known only from the log has no turn boundaries, so it shows a total and no per-answer badges; long-context tier prices published for some Gemini and Grok models are not applied yet.
 
@@ -36,14 +36,14 @@ Known limits, stated rather than hidden: the platform invoice can be higher than
 
 ## Features
 
-- **Multi-provider prices.** A bundled snapshot of the [models.dev](https://models.dev) catalog covers seven providers — DeepSeek, Moonshot, OpenAI, Anthropic, Google, xAI, Mistral — and every priced model of each (139 models today).
-- **Honest arithmetic.** DeepSeek is priced from its own published table including peak and off-peak tiers; cache writes bill at each provider's own cache-write price where one exists (Anthropic, OpenAI) and at the input price otherwise; a model with no price shows `—` rather than an invented number.
+- **DeepSeek prices, in yuan.** The table comes from DeepSeek's own Chinese rate card, so the figures are the ones the platform bills in rather than a converted approximation. It is fetched once as the host starts and cached beside the plugin, so a long-running host keeps one consistent table instead of changing rates mid-session.
+- **Honest arithmetic.** Peak and off-peak tiers are read from the rate card using the time each turn's tokens were consumed, not the time the ledger happened to be read; a model outside the table — every provider except DeepSeek — reports that its price table is unknown and shows `—` rather than another vendor's number, and the total does not absorb a figure it cannot justify.
 - **Breakdown by chat, subagents and session tree.** The hover tooltip separates this chat from its subagents and shows the tree total, the token buckets and the models involved.
 - **Subagents are counted, including the ones that already finished.** The tree is the union of the query engine's trace, the live session store and session persistence, and usage for a session this host no longer runs comes from the harness's own durable projection checkpoint — the same counters the harness would restore it with. A released subagent is the normal case, not an edge one: a chat whose children were invisible is not a cheap chat, it is an unmeasured one.
 - **Cost log in the project folder.** `<project>/.dsh-cost/cost.jsonl`, one JSON object per session per flush, with the tree position, four token buckets, cumulative and delta cost, and the pricing source. Inside a git work tree, `.dsh-cost/` is added to the project `.gitignore` on first write; a plain folder is left untouched — the log is welcome there, clutter is not.
 - **Interval pricing.** The JSONL log is the base: every flush prices only the tokens that arrived since the previous record, at the tariff in effect at that moment, so a chat that crosses a DeepSeek peak boundary keeps the price it was really billed at instead of being re-priced retroactively.
 - **Bounded, cached reads.** A summary reads only the tail of the log (`ledgerTailBytes`, 2 MiB by default) and reuses the cached read while the file's size and mtime are unchanged; when the tail starts mid-file the plugin reports `truncated` and `skippedBytes` instead of pretending to know the whole history.
-- **Nothing is quietly unaccounted.** Spend that belongs to no plan unit is named in the tooltip (`$1.230 is not attributed to any plan unit`) rather than folded into a total.
+- **Nothing is quietly unaccounted.** Spend that belongs to no plan unit is named in the tooltip (`¥1.230 is not attributed to any plan unit`) rather than folded into a total.
 - **The price of each answer, under the answer.** Every finished turn gets its own cost in the transcript, priced from that turn's own usage events rather than sliced out of the session total, and refreshed the moment the turn closes. The composer readout shares one poll with those badges, so a finished answer updates both at once.
 - **Every chat, open or not.** A chat that is not currently open has no live session, so the readout prices it — and its subagents — from the harness's durable checkpoint and from the cost log, and labels the number as recorded. A session neither of those knows stays `—` with the reason instead of disappearing. Opening it makes it live, prices it exactly, and writes the missing record.
 - **Three languages.** English, Chinese and Russian, chosen from the plugin config, then the harness locale, then the browser language.
@@ -60,13 +60,14 @@ The package is a DSH bundle: the profile reconciles its patch layer automaticall
 
 | Rule | Behaviour |
 | --- | --- |
-| DeepSeek | official table, peak hours 01:00-04:00 and 06:00-10:00 UTC on weekdays double the price; cache writes have no separate fee, so they bill at the input price |
-| Other providers | bundled models.dev snapshot, cache read and cache write prices used exactly as published |
-| Unpublished cache read | falls back to the input price, which is an upper bound |
+| DeepSeek | the official CNY rate card, fetched from DeepSeek's Chinese pricing page. Peak windows are Beijing time — 09:00-12:00 and 14:00-18:00 on weekdays — and double the price; the window is decided by when the tokens were consumed, taken from the turn's own events |
+| Every other provider | no price at all: the readout says the price table is unknown rather than substituting DeepSeek's rate |
+| Off-peak / cache read | the off-peak column of the card, used exactly as published; a cache read with no published price falls back to the input price, which is an upper bound |
+| Tariff epochs | a record priced under another table is not additive with a figure from this one: its money is discarded and the session is re-priced whole under the current table. The epoch is the currency plus a hash of the rates, deliberately not the date they were fetched: re-reading an unchanged card must not invalidate a running session, so only a real price change starts a new epoch |
 | Unknown model | resolves to no price; the readout says `—` and the tooltip names the model |
 | Attribution | the log is the base: a recorded interval keeps the price it was billed at, only new tokens are priced |
 
-`data/prices.json` records where it came from (`source`) and when it was taken (`generatedAt`), so the age of a price is checkable rather than assumed. Refresh it with `npm run prices` (the seven curated providers) or `npm run prices:all` (every provider in the catalog).
+The fetched table is cached at `data/rates-cny.json` inside the plugin, resolved from the plugin's own location rather than the working directory, and it records the date it was taken (`asOf`) so the age of a price is checkable rather than assumed. Each call to the vendor's page is parsed and validated, and a parse that does not look like the rate card is refused outright, leaving the previous table in place and marked stale — a half-read table is never used to bill anything. The readout names the table it used and its date.
 
 ### How the number is computed
 
@@ -91,7 +92,7 @@ Two kinds of provider call are billed and belong to no session's token usage:
 | Web search | the DeepSeek-backed search provider sends one request with a server-side `web_search` tool; the pages the model reads are billed to you, and the response's usage is never written into the session log | counts the calls it can see in a live session and says the figure is a floor |
 | A model call outside a turn | nothing in the session log describes it | nothing — the tooltip's totals are session totals and are named as such |
 
-On a search-heavy day those calls can be the larger part of the bill. Measured against a platform export (24 Aug – 22 Sep 2026): on days with no searches the session-side figure and the platform's agreed to within $0.04, and on days with hundreds the difference tracked the search count at roughly $0.004 per search.
+On a search-heavy day those calls can be the larger part of the bill. Measured against a platform export (24 Aug – 22 Sep 2026): on days with no searches the session-side figure and the platform's agreed to within a few cents (the export was denominated in USD at the time), and on days with hundreds the difference tracked the search count.
 
 `npm run reconcile` is that measurement, and it is reproducible:
 
@@ -104,7 +105,7 @@ It reads the platform's export and this host's session logs, folds the logs with
 ## Cost log format
 
 ```json
-{"ts":"2026-09-12T20:00:00.000Z","plugin":"dsh-chat-cost@0.6.9","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"moonshot","model":"kimi-k3","modelSource":"session","basis":"live","pricingSource":"catalog","tier":"flat","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.014,"deltaUsd":0.002}
+{"ts":"2026-10-11T13:49:56.019Z","plugin":"dsh-chat-cost@0.6.11","rootSessionId":"root-1","sessionId":"child-1","parentSessionId":"root-1","depth":1,"kind":"subagent","provider":"deepseek-official","model":"deepseek-flash","modelSource":"session","basis":"live","pricingSource":"table","tariff":"CNY:5968f96a","tier":"off-peak","tokens":{"uncachedInput":5000,"cacheRead":0,"cacheWrite":0,"output":1000},"totalTokens":6000,"deltaTokens":{"uncachedInput":1000,"cacheRead":0,"cacheWrite":0,"output":200},"deltaTotalTokens":1200,"cumulativeUsd":0.0058,"deltaUsd":0.0018}
 ```
 
 A record with `"basis":"durable"` is a catch-up: the session was already over when its tokens were read back, so its delta is the part of its history this log had not seen yet.
@@ -124,13 +125,13 @@ The log is append-only: a record is never rewritten, which is what makes interva
 
 ## Privacy
 
-No account, no telemetry, no server. At runtime the plugin makes no outbound request at all: prices come from the bundled snapshot, the widget asks only the local host route, and the log is written into your own project folder. The one command that touches the network is `npm run prices`, which rebuilds the catalog from models.dev and is meant for a maintainer before a release, not for a user.
+No account, no telemetry, no server. One request is made as the host starts: a plain GET of DeepSeek's published Chinese pricing page, to refresh the rate table. Nothing is sent with it — no key, no identifiers, no session data — and it is skipped entirely when the cached table is recent. Apart from that the plugin talks only to the local host route, and the log is written into your own project folder. If the fetch fails the previous table is kept and reported as stale; nothing else changes.
 
 ## Releasing
 
 ```sh
 npm test            # 153 tests; the schema checks need a DSH profile for the validator
-npm run prices      # refresh the bundled catalog before a release
+npm run prices      # rebuild the bundled fallback table from the vendor page
 npm version minor
 npm publish --access public
 for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
@@ -184,8 +185,8 @@ The plugin turns the cost log into a constraint: the model plans the work, the p
 ```
 cost_plan   {action: write, budgetUsd: 20, units: [...]}   -> plan.json + plan.md, 20% held back for rework
 cost_mark   {label: research}                              -> spend from here belongs to `research`
-cost_history {}                                            -> research: $1.84 actual against $2.10 expected
-cost_plan   {action: budget, budgetUsd: 25}                -> the widget then shows "≈ $0.42 / $25.00"
+cost_history {}                                            -> research: ¥1.84 actual against ¥2.10 expected
+cost_plan   {action: budget, budgetUsd: 25}                -> the widget then shows "≈ ¥0.42 / ¥25.00"
 ```
 
 Two rules make the estimates usable rather than decorative. Estimates are **ranges**: a unit priced from declared tokens is exact, anything else carries a P50 and a P90 (twice the expected work by default, and the tool says whether the number came from `declared` tokens, from `history`, or from a `bootstrap` default). And a budget keeps a **20% reserve** for rework, because a plan without a buffer is a lie. A model with no price resolves to `—`; nothing is invented.
@@ -194,9 +195,9 @@ Plan and budget files are read-modify-write, so every mutation goes through one 
 
 ### Which models are worth connecting
 
-`cost_scenarios` prices the same plan under four routings: **quality** (the preferred route for every unit), **connected** (the cheapest route already listed), **economy** (the cheapest adequate model in the whole catalog — which may mean connecting a provider you do not use yet) and **balanced** (preferred route for units marked `critical`, economy elsewhere). Each scenario reports expected and worst-case totals, whether it fits the budget, and the providers it needs.
+`cost_scenarios` prices the same plan under four routings: **quality** (the preferred route for every unit), **connected** (the cheapest route already listed), **economy** (the cheapest adequate route among those you listed) and **balanced** (preferred route for units marked `critical`, economy elsewhere). Each scenario reports expected and worst-case totals, whether it fits the budget, and the providers it needs. Because the rate table holds one provider, a scenario can only choose among the routes you declared — it never invents a cheaper one, and when nothing cheaper exists it says the four routings price identically rather than claiming a saving.
 
-The recommendation names the cost drivers, ranks what switching would save per unit, and lists the three cheapest adequate alternatives with their context size and release date. Adequacy uses catalog facts — reasoning, tool calling, vision, context and output limits — and never a quality score, because the catalog has none. Free tiers are skipped unless asked for, and a cheaper model whose context is much smaller than your preferred route is flagged as narrower rather than quietly recommended.
+The recommendation names the cost drivers and ranks them by share. It does not claim a saving it cannot support: with no second provider in the table, `savingsUsd` is zero and the opportunities list is empty, because proposing a switch would mean inventing a price. Nothing here is a quality judgement — the table carries prices, not capability scores.
 
 ## Updating
 
@@ -240,7 +241,9 @@ If a plugin keeps the host from starting, the boot names it (`plugin tree failed
 ## Limitations
 
 - Reasoning tokens are billed as output by the providers and are counted as output here.
-- Long-context tier prices published for some Gemini and Grok models are not applied yet; the base tier is used.
+- Long-context surcharges, where DeepSeek publishes them, are not applied yet; the base tier of a model is used.
+- Chinese public holidays are not modelled: DeepSeek's peak windows exclude them, so figures read a little high on those days.
+- A request that uses server-side web search is billed for the pages it reads, and that usage never reaches the session token counters: the readout counts those calls and is a floor, not the invoice.
 - A chat that the log has never seen and that is not open shows `—`: the plugin prices what it can prove (the live session, or the log) and says so rather than estimating from a projection it cannot read.
 - The live readout counts only the tail of the log (`ledgerTailBytes`, 2 MiB by default); older spend stays in the file and the summary reports the truncation.
 - Per-answer badges exist for turns the Host can price. A chat taken from the log has a total and no turn boundaries, so it shows no badges rather than invented ones.

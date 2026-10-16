@@ -45,7 +45,9 @@ test('the three versions share one section structure', () => {
 })
 
 test('every version documents the same load-bearing facts', () => {
-  const facts = ['dsh-chat-cost', 'dsh plugin --profile web add', 'npm test', '.dsh-cost/cost.jsonl', 'models.dev', 'MIT']
+  // The rate cache replaced the models.dev snapshot as the price source, so the
+  // fact every language must state is the cache, not the retired catalog.
+  const facts = ['dsh-chat-cost', 'dsh plugin --profile web add', 'npm test', '.dsh-cost/cost.jsonl', 'rates-cny.json', 'MIT']
   for (const doc of documents) {
     for (const fact of facts) {
       assert.ok(doc.text.includes(fact), `${doc.file} documents ${fact}`)
