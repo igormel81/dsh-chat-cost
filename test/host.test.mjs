@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { PLUGIN_VERSION, __buildSummary, __collectTree, __config, __createState, __defaultLedgerTailBytes, __modelOf, __rootOf } from '../lib/index.js'
+import { PLUGIN_VERSION, __buildSummary, __collectTree, __config, __createState, __defaultLedgerTailBytes, __modelOf, __rootOf, __tariff } from '../lib/index.js'
 import { appendCostLog, appendMarks, costRecord, markRecord } from '../lib/log.js'
 
 function session({ id, cwd, parent = undefined, provider = 'deepseek-official', model = 'deepseek-flash', usage = null }) {
@@ -34,10 +34,10 @@ function context({ sessions, query, projections = true, projectionCache, persist
   }
 }
 
-/** Monday noon UTC: outside both DeepSeek peak windows, so the tariff is fixed. */
-const OFF_PEAK = new Date('2026-09-14T12:00:00Z')
-/** Monday 07:00 UTC: inside the 06:00-10:00 peak window, where the price doubles. */
-const PEAK = new Date('2026-09-14T07:00:00Z')
+/** Tuesday noon Beijing (04:00 UTC): outside both DeepSeek peak windows. */
+const OFF_PEAK = new Date('2026-10-13T04:00:00Z')
+/** Tuesday 09:00 Beijing (01:00 UTC): inside the first peak window, where the price doubles. */
+const PEAK = new Date('2026-10-13T01:00:00Z')
 /** Price the tree at a pinned moment; a price test must not depend on when it runs. */
 const summaryAt = (ctx, settings, state, sessionId, now = OFF_PEAK) => __buildSummary(ctx, settings, state, sessionId, now)
 
@@ -60,25 +60,27 @@ test('a live chat plus a live subagent are priced into one tree and logged', asy
   assert.equal(summary.self.sessionId, 'root')
   assert.equal(summary.subagents[0].sessionId, 'child')
   assert.equal(summary.subagents[0].depth, 1)
-  assert.equal(summary.sessions[0].pricingSource, 'official')
-  assert.equal(summary.sessions[1].pricingSource, 'catalog')
-  // DeepSeek flash off-peak: 1M input at 0.15 -> 0.15; Kimi K3: 1000 output at 15/1M -> 0.015
-  assert.ok(Math.abs(summary.sessions[0].usd - 0.15) < 1e-9, `root usd ${summary.sessions[0].usd}`)
-  assert.ok(Math.abs(summary.sessions[1].usd - 0.015) < 1e-9, `child usd ${summary.sessions[1].usd}`)
-  assert.ok(Math.abs(summary.totals.usd - 0.165) < 1e-9)
+  assert.equal(summary.sessions[0].pricingSource, 'table')
+  // The rate table covers DeepSeek only, so the Moonshot child has no price at
+  // all — and the tree total must not gain a number it cannot justify.
+  assert.equal(summary.sessions[1].pricingSource, 'none')
+  // DeepSeek flash off-peak: 1M input at ¥1 -> ¥1.00.
+  assert.ok(Math.abs(summary.sessions[0].usd - 1) < 1e-9, `root usd ${summary.sessions[0].usd}`)
+  assert.equal(summary.sessions[1].usd, null, `child usd ${summary.sessions[1].usd}`)
+  assert.ok(Math.abs(summary.totals.usd - 1) < 1e-9)
+  assert.deepEqual(summary.totals.unpricedSessions, ['child'])
   assert.equal(summary.logPath, join(project, '.dsh-cost', 'cost.jsonl'))
   assert.equal(summary.logError, null)
 
   const lines = (await readFile(summary.logPath, 'utf8')).trim().split('\n')
-  assert.equal(lines.length, 2)
+  assert.equal(lines.length, 1)
   const records = lines.map((line) => JSON.parse(line))
+  assert.equal(records[0].sessionId, 'root', 'the priced session is the one recorded')
+  assert.equal(records[0].plugin, `dsh-chat-cost@${PLUGIN_VERSION}`, 'the record names the release that wrote it')
+  // The child has no price in the table, so nothing is written for it; the root
+  // record is the only one this tree produces.
   const childRecord = records.find((record) => record.sessionId === 'child')
-  assert.equal(childRecord.kind, 'subagent')
-  assert.equal(childRecord.rootSessionId, 'root')
-  assert.equal(childRecord.parentSessionId, 'root')
-  assert.equal(childRecord.model, 'kimi-k3')
-  assert.equal(childRecord.pricingSource, 'catalog')
-  assert.equal(childRecord.plugin, `dsh-chat-cost@${PLUGIN_VERSION}`, 'the record names the release that wrote it')
+  assert.equal(childRecord, undefined, 'an unpriced session writes no record')
   assert.equal(await readFile(join(project, '.gitignore'), 'utf8'), '.dsh-cost/\n')
 })
 
@@ -100,8 +102,8 @@ test('an unchanged tree writes nothing, a changed session appends only its delta
   const lines = (await readFile(third.logPath, 'utf8')).trim().split('\n')
   assert.equal(lines.length, 2)
   const last = JSON.parse(lines[1])
-  assert.ok(Math.abs(last.deltaUsd - 0.15) < 1e-9, `delta ${last.deltaUsd}`)
-  assert.ok(Math.abs(last.cumulativeUsd - 0.3) < 1e-9)
+  assert.ok(Math.abs(last.deltaUsd - 1) < 1e-9, `delta ${last.deltaUsd}`)
+  assert.ok(Math.abs(last.cumulativeUsd - 2) < 1e-9)
 })
 
 test('a released subagent is priced from the harness checkpoint, not dropped and not zero', async () => {
@@ -146,8 +148,8 @@ test('a released subagent is priced from the harness checkpoint, not dropped and
   assert.equal(child.live, false)
   assert.equal(child.modelSource, 'inherited', 'the route comes from the tree, and says so')
   assert.equal(child.totalTokens, 61000000, 'the subagent tokens are counted, not dropped')
-  // DeepSeek flash off-peak: 60M cache reads at 0.003 and 1M output at 0.6.
-  assert.ok(Math.abs(child.usd - (0.18 + 0.6)) < 1e-9, `child usd ${child.usd}`)
+  // DeepSeek flash off-peak: 60M cache reads at ¥0.02 and 1M output at ¥4.
+  assert.ok(Math.abs(child.usd - (1.2 + 4)) < 1e-9, `child usd ${child.usd}`)
   assert.ok(summary.totals.subagentUsd > 0, 'and they reach the subagent total')
 
   const records = (await readFile(summary.logPath, 'utf8')).trim().split('\n').map((line) => JSON.parse(line))
@@ -352,12 +354,12 @@ test('config defaults are conservative', () => {
 
 test('spend that no plan unit claimed is reported as unlabelled', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
-  await appendCostLog(project, [costRecord({ sessionId: 'root', model: 'deepseek-flash', deltaUsd: 0.42, cumulativeUsd: 0.42, usage: { outputTokens: 1000 } })], {})
+  await appendCostLog(project, [costRecord({ sessionId: 'root', model: 'deepseek-flash', tariff: __tariff(), deltaUsd: 0.004, cumulativeUsd: 0.004, usage: { outputTokens: 1000 } })], {})
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 1000 } })
   const summary = await summaryAt(context({ sessions: [root] }), settings, __createState(), 'root')
 
   assert.equal(summary.ok, true)
-  assert.ok(Math.abs(summary.unlabeledUsd - 0.42) < 1e-9, `expected the unclaimed spend, got ${summary.unlabeledUsd}`)
+  assert.ok(Math.abs(summary.unlabeledUsd - 0.004) < 1e-9, `expected the unclaimed spend, got ${summary.unlabeledUsd}`)
   assert.equal(summary.ledger.records, 1)
   assert.equal(summary.ledger.truncated, false)
 })
@@ -365,7 +367,7 @@ test('spend that no plan unit claimed is reported as unlabelled', async () => {
 test('a mark claims the spend that follows it, so nothing stays unlabelled', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-'))
   await appendMarks(project, [markRecord({ sessionId: 'root', label: 'research' })], {})
-  await appendCostLog(project, [costRecord({ sessionId: 'root', model: 'deepseek-flash', deltaUsd: 0.42, cumulativeUsd: 0.42, usage: { outputTokens: 1000 } })], {})
+  await appendCostLog(project, [costRecord({ sessionId: 'root', model: 'deepseek-flash', tariff: __tariff(), deltaUsd: 0.004, cumulativeUsd: 0.004, usage: { outputTokens: 1000 } })], {})
   const root = session({ id: 'root', cwd: project, usage: { outputTokens: 1000 } })
   const summary = await summaryAt(context({ sessions: [root] }), settings, __createState(), 'root')
 
@@ -393,13 +395,13 @@ test('a second run over an unchanged tree appends nothing and reuses the read', 
   root.usage = { uncachedInputTokens: 2000000 }
   const third = await summaryAt(ctx, settings, state, 'root')
   assert.equal(third.ledger.records, 2)
-  assert.ok(Math.abs(third.totals.usd - 0.3) < 1e-9, `expected 1M off-peak + 1M more = 0.30, got ${third.totals.usd}`)
+  assert.ok(Math.abs(third.totals.usd - 2) < 1e-9, `expected 1M off-peak at ¥1 + 1M more = ¥2, got ${third.totals.usd}`)
   assert.equal(state.ledgerCache.size, 0, 'and the new record invalidates it again')
 })
 
 test('a session carrying the real projection state is priced, not reported as free', async () => {
   // The harness hands over { totals, last }, and reading only the top level made
-  // every live chat cost $0. Both shapes must price identically.
+  // every live chat cost ¥0. Both shapes must price identically.
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-proj-shape-'))
   const flat = session({ id: 'flat', cwd: project, usage: { uncachedInputTokens: 1000000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 } })
   const projected = session({
@@ -414,7 +416,7 @@ test('a session carrying the real projection state is priced, not reported as fr
   const fromFlat = await summaryAt(context({ sessions: [flat] }), settings, __createState(), 'flat')
   const fromProjection = await summaryAt(context({ sessions: [projected] }), settings, __createState(), 'projected')
 
-  assert.ok(Math.abs(fromProjection.self.usd - 0.15) < 1e-9, `projected usd ${fromProjection.self.usd}`)
+  assert.ok(Math.abs(fromProjection.self.usd - 1) < 1e-9, `projected usd ${fromProjection.self.usd}`)
   assert.equal(fromProjection.self.usd, fromFlat.self.usd, 'the wrapper must not change the price')
   assert.equal(fromProjection.self.tokens.cacheRead, 0, 'totals wins over the last step')
   assert.equal(fromProjection.self.tokens.uncachedInput, 1000000)
@@ -432,7 +434,7 @@ test('a chat that is not open is priced from the log instead of reported as noth
       kind: 'chat',
       provider: 'deepseek-official',
       model: 'deepseek-flash',
-      pricingSource: 'official',
+      pricingSource: 'table',
       tier: 'off-peak',
       usage: { uncachedInputTokens: 2000000, outputTokens: 100000, cacheReadTokens: 0, cacheWriteTokens: 0 },
       cumulativeUsd: 0.36,
@@ -512,11 +514,11 @@ test('the summary carries a price per turn, so an answer can show its own cost',
 
   assert.equal(Array.isArray(summary.turns), true)
   assert.deepEqual(summary.turns.map((turn) => turn.turn), [1, 2])
-  // DeepSeek flash off-peak: 0.15 per million input tokens.
-  assert.ok(Math.abs(summary.turns[0].usd - 0.15) < 1e-9, `turn 1 usd ${summary.turns[0].usd}`)
-  assert.ok(Math.abs(summary.turns[1].usd - 0.075) < 1e-9, `turn 2 usd ${summary.turns[1].usd}`)
+  // DeepSeek flash off-peak: ¥1 per million input tokens.
+  assert.ok(Math.abs(summary.turns[0].usd - 1) < 1e-9, `turn 1 usd ${summary.turns[0].usd}`)
+  assert.ok(Math.abs(summary.turns[1].usd - 0.5) < 1e-9, `turn 2 usd ${summary.turns[1].usd}`)
   assert.equal(summary.turns[0].model, 'deepseek-flash')
-  assert.equal(summary.turns[0].pricingSource, 'official')
+  assert.equal(summary.turns[0].pricingSource, 'table')
   assert.equal(summary.turns[0].tier, 'off-peak')
   assert.equal(summary.turns[0].tokens, 1000000)
 })
@@ -554,11 +556,14 @@ test('a closed chat still prices its children, from the route its own log record
       kind: 'chat',
       provider: 'deepseek-official',
       model: 'deepseek-flash',
-      pricingSource: 'official',
+      pricingSource: 'table',
+      // Stamped with the current tariff epoch: an unstamped record (or one from a
+      // different table) is deliberately not additive with today's figures.
+      tariff: __tariff(),
       tier: 'off-peak',
       usage: { uncachedInputTokens: 1000000 },
-      cumulativeUsd: 0.15,
-      deltaUsd: 0.15
+      cumulativeUsd: 1,
+      deltaUsd: 1
     })
   ])
   const query = {
@@ -582,8 +587,8 @@ test('a closed chat still prices its children, from the route its own log record
   assert.equal(child.basis, 'durable')
   assert.equal(child.modelSource, 'inherited')
   assert.equal(child.model, 'deepseek-flash', 'the tree route comes from the log, not from a live session')
-  // Off-peak flash output: 1M at 0.6 per million.
-  assert.ok(Math.abs(child.usd - 0.6) < 1e-9, `child usd ${child.usd}`)
+  // Off-peak flash output: 1M at ¥4 per million.
+  assert.ok(Math.abs(child.usd - 4) < 1e-9, `child usd ${child.usd}`)
   assert.ok(summary.totals.subagentUsd > 0)
   assert.deepEqual(summary.totals.unpricedSessions, [])
 })
@@ -591,7 +596,7 @@ test('a closed chat still prices its children, from the route its own log record
 test('a chat priced from the log has no per-turn numbers to offer', async () => {
   const project = await mkdtemp(join(tmpdir(), 'dsh-cost-turns-recorded-'))
   await appendCostLog(project, [
-    costRecord({ sessionId: 'past', rootSessionId: 'past', depth: 0, kind: 'chat', provider: 'deepseek-official', model: 'deepseek-flash', usage: { uncachedInputTokens: 1000 }, cumulativeUsd: 0.00015, deltaUsd: 0.00015 })
+    costRecord({ sessionId: 'past', rootSessionId: 'past', depth: 0, kind: 'chat', provider: 'deepseek-official', model: 'deepseek-flash', tariff: __tariff(), usage: { uncachedInputTokens: 1000 }, cumulativeUsd: 0.00015, deltaUsd: 0.00015 })
   ])
   const ctx = context({
     sessions: [],
@@ -605,8 +610,9 @@ test('a chat priced from the log has no per-turn numbers to offer', async () => 
 
 test('the same tokens cost double inside a DeepSeek peak window, and the record says which', async () => {
   // The suite used to assert off-peak prices against the wall clock, so it failed
-  // between 01:00-04:00 and 06:00-10:00 UTC on weekdays — in CI as well. The clock
-  // is now an argument, and this test is the reason it exists.
+  // whenever CI happened to run inside a peak window. The clock is now an argument,
+  // and this test is the reason it exists. The windows are Beijing time, per
+  // DeepSeek's Chinese rate card: 09:00-12:00 and 14:00-18:00, weekdays.
   const offProject = await mkdtemp(join(tmpdir(), 'dsh-cost-peak-off-'))
   const peakProject = await mkdtemp(join(tmpdir(), 'dsh-cost-peak-on-'))
   const usage = { uncachedInputTokens: 1000000, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 0 }
@@ -614,8 +620,8 @@ test('the same tokens cost double inside a DeepSeek peak window, and the record 
   const off = await summaryAt(context({ sessions: [session({ id: 'root', cwd: offProject, usage })] }), settings, __createState(), 'root', OFF_PEAK)
   const on = await summaryAt(context({ sessions: [session({ id: 'root', cwd: peakProject, usage })] }), settings, __createState(), 'root', PEAK)
 
-  assert.ok(Math.abs(off.self.usd - 0.15) < 1e-9, `off-peak usd ${off.self.usd}`)
-  assert.ok(Math.abs(on.self.usd - 0.3) < 1e-9, `peak usd ${on.self.usd}`)
+  assert.ok(Math.abs(off.self.usd - 1) < 1e-9, `off-peak usd ${off.self.usd}`)
+  assert.ok(Math.abs(on.self.usd - 2) < 1e-9, `peak usd ${on.self.usd}`)
   assert.equal(off.self.tier, 'off-peak')
   assert.equal(on.self.tier, 'peak')
 
@@ -628,8 +634,8 @@ test('the same tokens cost double inside a DeepSeek peak window, and the record 
   const first = await summaryAt(context({ sessions: [root] }), settings, state, 'root', OFF_PEAK)
   const later = await summaryAt(context({ sessions: [root] }), settings, state, 'root', PEAK)
 
-  assert.ok(Math.abs(first.self.usd - 0.15) < 1e-9)
-  assert.ok(Math.abs(later.self.usd - 0.15) < 1e-9, `recorded interval re-priced at peak: ${later.self.usd}`)
+  assert.ok(Math.abs(first.self.usd - 1) < 1e-9)
+  assert.ok(Math.abs(later.self.usd - 1) < 1e-9, `recorded interval re-priced at peak: ${later.self.usd}`)
   assert.equal(later.self.tier, 'off-peak', 'the record keeps the tariff it was written with')
 })
 

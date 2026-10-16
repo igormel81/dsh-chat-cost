@@ -8,13 +8,14 @@ import assert from 'node:assert/strict'
 import { mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { dirname } from 'node:path'
 import { appendCostLog, costRecord } from '../lib/log.js'
 import { buildTools } from '../lib/tools.js'
 import { createLocks } from '../lib/locks.js'
 
-const catalog = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'prices.json'), 'utf8'))
+// The rate table is the only price source now, so the fixture comes from the
+// module rather than from a snapshot file that no longer exists.
+const { catalog: catalogOf } = await import('../lib/rates.js')
+const catalog = catalogOf()
 
 const settings = { logDirectory: '.dsh-cost' }
 const exec = { agent: { sessionId: 'root-1' } }
@@ -45,16 +46,18 @@ test('every tool declares a model-facing schema and an output contract', async (
   }
 })
 
-test('cost_price finds official and catalog prices', async () => {
+test('cost_price lists the DeepSeek rates and says nothing about the rest', async () => {
   const { call } = await harness()
   const deepseek = await call('cost_price', { provider: 'deepseek-official' })
   assert.equal(deepseek.ok, true)
   assert.ok(deepseek.matches.length >= 2)
-  assert.equal(deepseek.matches.every((match) => match.source === 'official'), true)
+  assert.equal(deepseek.matches.every((match) => match.source === 'table'), true)
+  assert.equal(deepseek.currency, 'CNY', 'the figures are yuan')
+  assert.equal(deepseek.matches.find((match) => match.model === 'deepseek-flash').input, 1)
 
+  // A model outside the table has no price rather than another vendor's price.
   const kimi = await call('cost_price', { model: 'kimi-k3' })
-  assert.equal(kimi.matches[0].model, 'kimi-k3')
-  assert.equal(kimi.matches[0].cacheRead, 0.3)
+  assert.equal(kimi.count, 0, 'an unpriced provider yields no match')
 
   const nothing = await call('cost_price', { model: 'not-a-model' })
   assert.equal(nothing.count, 0)
@@ -72,7 +75,7 @@ test('cost_estimate prices declared tokens exactly and says where the number cam
   })
   assert.equal(result.ok, true)
   assert.equal(result.planned[0].basis, 'declared')
-  assert.equal(result.planned[0].p50Usd, 0.15, 'off-peak DeepSeek flash input price')
+  assert.equal(result.planned[0].p50Usd, 1, 'off-peak DeepSeek flash input price, in yuan')
   assert.equal(result.reserveUsd, 1)
   assert.equal(result.totals.fits, true)
 
@@ -88,7 +91,7 @@ test('a plan is written to the project and honoured by later estimation', async 
     budgetUsd: 10,
     units: [
       { label: 'research', priority: 2, scenario: 'lean', routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] },
-      { label: 'synthesis', priority: 1, scenario: 'normal', routes: [{ provider: 'moonshot', model: 'kimi-k3' }] }
+      { label: 'synthesis', priority: 1, scenario: 'normal', routes: [{ provider: 'deepseek-official', model: 'deepseek-v4-pro' }] }
     ]
   })
   assert.equal(written.ok, true)
@@ -169,15 +172,15 @@ test('without a project directory the tools refuse instead of writing somewhere 
   assert.deepEqual(await mark.execute({ label: 'x' }, exec), { ok: false, reason: 'no-project-directory' })
 })
 
-test('scenarios compare routings and name the models worth connecting', async () => {
+test('scenarios price the routes you declared, and invent no cheaper ones', async () => {
   const { project, call } = await harness()
   await call('cost_plan', {
     action: 'write',
     goal: 'beta',
     budgetUsd: 25,
     units: [
-      { label: 'collect', priority: 1, scenario: 'normal', routes: [{ provider: 'moonshot', model: 'kimi-k3' }] },
-      { label: 'synthesis', priority: 3, critical: true, scenario: 'deep', routes: [{ provider: 'moonshot', model: 'kimi-k3' }] }
+      { label: 'collect', priority: 1, scenario: 'normal', routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] },
+      { label: 'synthesis', priority: 3, critical: true, scenario: 'deep', routes: [{ provider: 'deepseek-official', model: 'deepseek-v4-pro' }] }
     ]
   })
 
@@ -188,16 +191,21 @@ test('scenarios compare routings and name the models worth connecting', async ()
   const quality = result.scenarios.find((scenario) => scenario.name === 'quality')
   const economy = result.scenarios.find((scenario) => scenario.name === 'economy')
   const balanced = result.scenarios.find((scenario) => scenario.name === 'balanced')
-  assert.equal(quality.units.every((unit) => unit.route.model === 'kimi-k3'), true)
-  assert.ok(economy.totals.p50Usd < quality.totals.p50Usd, 'the cheapest adequate routing is cheaper')
-  assert.equal(balanced.units.find((unit) => unit.label === 'synthesis').route.model, 'kimi-k3', 'a critical unit keeps its preferred route')
-  assert.ok(balanced.totals.p50Usd > economy.totals.p50Usd, 'and that costs more than pure economy')
+  // Every scenario keeps the declared route: with one priced provider there is
+  // nothing cheaper to substitute, so all four price identically rather than
+  // pretending to have searched.
+  assert.equal(quality.units.every((unit) => unit.route.provider === 'deepseek-official'), true)
+  assert.equal(economy.totals.p50Usd, quality.totals.p50Usd)
+  assert.equal(balanced.totals.p50Usd, quality.totals.p50Usd)
+  assert.equal(balanced.units.find((unit) => unit.label === 'synthesis').route.model, 'deepseek-v4-pro', 'a critical unit keeps its preferred route')
 
   const recommendation = result.recommendation
-  assert.ok(recommendation.savingsUsd > 0)
   assert.equal(recommendation.drivers[0].label, 'synthesis', 'the cost driver is ranked first')
   assert.ok(recommendation.drivers[0].share > 0.5)
-  assert.ok(recommendation.opportunities.length >= 1)
+  // No catalog alternatives means no savings to claim. A non-zero figure here
+  // would be a number the table cannot support.
+  assert.equal(recommendation.savingsUsd, 0)
+  assert.deepEqual(recommendation.opportunities, [])
 
   // The comparison is saved with the plan and rendered for a human reader.
   const json = JSON.parse(await readFile(join(project, '.dsh-cost', 'plan.json'), 'utf8'))
@@ -209,25 +217,9 @@ test('scenarios compare routings and name the models worth connecting', async ()
   assert.match(markdown, /not a quality measurement/)
 })
 
-test('free-tier models are skipped unless they are asked for', async () => {
+test('a route the table does not cover yields no candidates, and no substitute is offered', async () => {
   const { call } = await harness()
-  const units = [{ label: 'x', scenario: 'lean', needs: { tools: true }, routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] }]
-
-  const without = await call('cost_scenarios', { units })
-  const withFree = await call('cost_scenarios', { units, includeFree: true })
-
-  assert.ok(without.units[0].freeSkipped >= 1, 'free-tier candidates exist in the catalog')
-  assert.ok(without.units[0].cheapestAdequate.usd > 0, 'and are excluded from the paid floor')
-  const note = without.scenarios.find((scenario) => scenario.name === 'economy').notes.find((entry) => entry.kind === 'free-models-skipped')
-  assert.ok(note !== undefined, 'the exclusion is stated, not silent')
-  assert.match(note.detail, /includeFree/)
-
-  assert.equal(withFree.units[0].freeSkipped, 0)
-  assert.ok(withFree.units[0].cheapestAdequate.usd <= without.units[0].cheapestAdequate.usd, 'pricing free tiers can only lower the floor')
-})
-
-test('a cheaper adequate model that is much narrower is flagged, not hidden', async () => {
-  const { call } = await harness()
+  // The preferred route is Anthropic: not in the rate table, so it has no price.
   const result = await call('cost_scenarios', {
     units: [{
       label: 'long-read',
@@ -236,41 +228,28 @@ test('a cheaper adequate model that is much narrower is flagged, not hidden', as
       routes: [{ provider: 'anthropic', model: 'claude-opus-5' }]
     }]
   })
-  const cheapest = result.units[0].cheapestAdequate
-  assert.ok(cheapest !== null)
-  assert.ok(cheapest.usd < 1, 'the cheap option is genuinely cheaper than Opus')
-  const flagged = result.units[0].alternatives.some((alternative) => alternative.narrower === true)
-  assert.equal(flagged, true, 'a smaller context than the preferred route is visible in the comparison')
-  const note = result.scenarios.find((scenario) => scenario.name === 'economy').notes.find((entry) => entry.kind === 'narrower-context')
-  assert.ok(note !== undefined)
-})
 
-test('a unit with no requirements gets no catalog-wide recommendation, and says why', async () => {
-  const { call } = await harness()
-  const result = await call('cost_scenarios', {
-    units: [{ label: 'mystery', routes: [{ provider: 'not-a-provider', model: 'not-a-model' }], scenario: 'lean' }]
-  })
-  assert.equal(result.units[0].knowsRequirements, false)
-  assert.equal(result.units[0].candidates, 0)
+  assert.equal(result.ok, true)
+  assert.equal(result.units[0].knowsRequirements, true, 'the unit stated what it needs')
+  assert.equal(result.units[0].candidates, 0, 'and the table offered nothing to compare')
+  assert.equal(result.units[0].freeSkipped, 0, 'there are no free-tier rows to skip')
   assert.equal(result.units[0].cheapestAdequate, null)
-  const note = result.scenarios.find((scenario) => scenario.name === 'economy').notes.find((entry) => entry.kind === 'no-requirements')
-  assert.ok(note !== undefined, 'the silence is explained rather than hidden')
+  assert.deepEqual(result.units[0].alternatives, [])
 })
 
-test('an adequate route names a harness route, not only a catalog key', async () => {
+test('includeFree changes nothing when no free-tier rows exist', async () => {
   const { call } = await harness()
-  const result = await call('cost_scenarios', {
-    units: [{ label: 'code', scenario: 'lean', needs: { tools: true, context: 100000 }, routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] }]
-  })
-  const alternatives = result.units[0].alternatives
-  assert.ok(alternatives.length > 0)
-  for (const alternative of alternatives) {
-    assert.equal(typeof alternative.route, 'string')
-    assert.equal(alternative.route, alternative.route.toLowerCase())
-  }
-  const known = ['deepseek-official', 'moonshot', 'openai', 'anthropic', 'google', 'xai', 'mistral']
-  assert.ok(known.includes(result.units[0].cheapestAdequate.route), `unexpected route ${result.units[0].cheapestAdequate.route}`)
+  const units = [{ label: 'x', scenario: 'lean', needs: { tools: true }, routes: [{ provider: 'deepseek-official', model: 'deepseek-flash' }] }]
+
+  const without = await call('cost_scenarios', { units })
+  const withFree = await call('cost_scenarios', { units, includeFree: true })
+
+  // The flag exists for a catalog with free rows; this table has none, so both
+  // answers must be identical instead of one quietly claiming a discount.
+  assert.deepEqual(withFree.units[0], without.units[0])
+  assert.equal(without.units[0].freeSkipped, 0)
 })
+
 
 test('scenarios refuse without units and say what to do', async () => {
   const { call } = await harness()

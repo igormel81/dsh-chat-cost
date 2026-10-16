@@ -139,9 +139,10 @@ test('the route answers with a real summary for the session tree', async () => {
   assert.ok(body.totals.usd > 0)
   assert.equal(body.logPath, join(project, '.dsh-cost', 'cost.jsonl'))
 
-  // The boot-time request already wrote the log, without any client polling.
+  // The boot-time request already wrote the log, without any client polling. The
+  // Moonshot child has no price in the table, so the priced root is the only record.
   const lines = (await readFile(body.logPath, 'utf8')).trim().split('\n')
-  assert.equal(lines.length, 2)
+  assert.equal(lines.length, 1)
 })
 
 test('the route rejects a wrong method and a missing session id by name', async () => {

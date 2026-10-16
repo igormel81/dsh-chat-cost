@@ -74,9 +74,9 @@ test('a later change still appends exactly one more line', async () => {
   const lines = await ledgerLines(project)
   assert.equal(lines.length, 2)
   const records = lines.map((line) => JSON.parse(line))
-  assert.equal(records[0].cumulativeUsd, 0.15)
-  assert.equal(records[1].cumulativeUsd, 0.3)
-  assert.ok(Math.abs(records[1].deltaUsd - 0.15) < 1e-9)
+  assert.equal(records[0].cumulativeUsd, 1)
+  assert.equal(records[1].cumulativeUsd, 2)
+  assert.ok(Math.abs(records[1].deltaUsd - 1) < 1e-9)
 })
 
 test('the queue is per session tree, so two chats flush independently', async () => {
