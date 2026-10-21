@@ -3,6 +3,6 @@
 # languages carry equal authority; after editing one side, bring the others along
 # and re-record with:
 #   for f in README.md README.zh.md README.ru.md; do echo "$f: $(git hash-object $f)"; done
-README.md: d9570ef724ea1862f7fea4f6b61bba5d3e7faf4c
-README.zh.md: a6a6b42506dbe43d0912c8172a0d7331db9c8c88
-README.ru.md: 071a8cc2d09fe9bdea3a87447d5811e1306e9293
+README.md: 14ded9db80202791529b32dff0575495a53958f5
+README.zh.md: e52371e0809f3c6aa568f48f0ae2ca32095a7fbf
+README.ru.md: 294f6a0f36cac0675d9f589b3269e4b758c55ad9
